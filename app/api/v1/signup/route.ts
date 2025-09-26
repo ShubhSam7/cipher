@@ -1,48 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import client from '@/lib/prisma'
+import client from "@/lib/prisma";
+import bcrypt from "bcrypt";
 
 export async function POST(req: NextRequest) {
-    try {
-        const data = await req.json();
+  try {
+    const user = await req.json();
 
-        // Validate required fields
-        if (!data.email) {
-            return NextResponse.json(
-                { error: "Email is required" },
-                { status: 400 }
-            );
+    if (!user.email || !user.password) {
+      return NextResponse.json(
+        { error: "Email & Password is required" },
+        { status: 400 }
+      );
+    }
+
+    // Hash the password before saving
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(user.password, saltRounds);
+
+    const sign = await client.user.create({
+        data: {
+            email: user.email,
+            name: user.name || null,
+            password: hashedPassword,
         }
-
-        // Create user with fields from your schema
-        const user = await client.user.create({
-            data: {
-                email: data.email,      // Required field from your schema
-                name: data.name || null // Optional field from your schema
-                // password: data.password
-            }
-        });
-
-        return NextResponse.json({
-            msg: "User is Signed Up",
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name
-            }
-        });
-    }
-    catch(e){
-        console.log(e);
-        return console.log("error occured");
-    }
-}
-
-
-export function GET(req: NextRequest){
-    //const user = await prisma.user.findFirst();
+    });
 
     return NextResponse.json({
-        //user: user
-        msg: "Shubh was here"
-    })
+      msg: "User is Signed Up",
+      user: sign
+    });
+  } catch (e) {
+    console.log(e);
+    return NextResponse.json({ 
+        msg : "error occured"
+    });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const user = await client.user.findFirst();
+
+  return NextResponse.json({
+        user: user,
+        msg: "Shubh was here",
+  });
 }
