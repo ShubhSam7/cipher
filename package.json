@@ -13,17 +13,21 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.57.4",
     "@types/bcrypt": "^6.0.0",
+    "@types/nodemailer": "^7.0.1",
     "add": "^2.0.6",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "crypto": "^1.0.1",
     "dotenv": "^17.2.2",
     "jsonwebtoken": "^9.0.2",
     "next": "15.5.3",
+    "nodemailer": "^7.0.6",
     "pnpm": "^10.17.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
