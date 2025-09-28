@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const sign = await client.user.create({
         data: {
             email: user.email,
-            name: user.name || null,
+            user_handle: user.user_handle || null,
             password: hashedPassword,
         }
     });

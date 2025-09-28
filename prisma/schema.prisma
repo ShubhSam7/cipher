@@ -1,36 +1,141 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id          Int       @id @default(autoincrement())
-  email       String    @unique
-  name        String?
-  password    String  
+  id          String            @id @default(cuid())
+  email       String            @unique
+  user_handle String            @unique
+  password    String
+  year        String?
+  avatar      String?
+  bio         String?
   posts       Post[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  comments    Comment[]
+  communities CommunityMember[]
+  postlikes   Postlike[]
+  commentLikes CommentLike[]
+  createdCommunities Community[]
+  createdAt   DateTime          @default(now())
+
+  @@map("users")
 }
 
 model Post {
-  id        Int       @id @default(autoincrement())
-  title     String
-  content   String?
-  published Boolean   @default(false)
-  author    User?     @relation(fields: [authorId], references: [id])
-  authorId  Int?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String        @id @default(cuid())
+  content     String
+  mediaURL    String[]
+  mediaType   String[]
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  communityId String?
+  community   Community?    @relation(fields: [communityId], references: [id])
+  likes       Postlike[]
+  comments    Comment[]
+  hashtags    PostHashtag[]
+  createdAt   DateTime      @default(now())
+
+  @@index([createdAt])
+  @@index([communityId])
+  @@map("posts")
+}
+
+model Community {
+  id           String            @id @default(cuid())
+  name         String            @unique
+  slug         String            @unique
+  description  String?           @db.Text
+  avatar       String?
+  creatorId    String
+  creator      User              @relation(fields: [creatorId], references: [id])
+  members      CommunityMember[]
+  posts        Post[]
+  isPublic     Boolean           @default(true)
+  memberCount  Int               @default(0)
+  createdAt    DateTime          @default(now())
+
+  @@map("communities")
+}
+
+model CommunityMember {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  communityId String
+  community   Community  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  role        MemberRole @default(MEMBER)
+  joinedAt    DateTime   @default(now())
+
+  @@unique([userId, communityId])
+  @@map("community_members")
+}
+
+enum MemberRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+model Postlike {
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@map("post_likes")
+}
+
+model Comment {
+  id       String        @id @default(cuid())
+  content  String
+  authorId String
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  postId   String
+  post     Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId String?
+  parent   Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[]     @relation("CommentReplies")
+  likes    CommentLike[]
+  createdAt DateTime     @default(now())
+
+  @@index([postId])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model CommentLike {
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@map("comment_likes")
+}
+
+model PostHashtag {
+  postId    String
+  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtagId String
+  hashtag   Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, hashtagId])
+  @@map("post_hashtags")
+}
+
+model Hashtag {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  posts     PostHashtag[]
+  useCount  Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  @@map("hashtags")
 }
