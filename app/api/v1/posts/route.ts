@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { verifyAuth } from "@/lib/middleware";
+import { unknown, z } from "zod";
+import { middleware } from "@/lib/middleware";
 import prisma from "@/lib/prisma";
 
 const createPostSchema = z.object({
@@ -12,7 +12,12 @@ const createPostSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await verifyAuth(req);
+    const auth = await middleware(req);
+
+    if (auth instanceof NextResponse) {
+      return auth;
+    }
+    
     if (!auth.success) {
       return NextResponse.json(
         { error: auth.error || "Unauthorized" },
@@ -109,7 +114,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await verifyAuth(req);
+    const auth = await middleware(req);
+
+    if (auth instanceof NextResponse) {
+      return auth;
+    }
+    
     if (!auth.success) {
       return NextResponse.json(
         { error: auth.error || "Unauthorized" },
