@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { unknown, z } from "zod";
+import { z } from "zod";
 import { middleware } from "@/lib/middleware";
 import prisma from "@/lib/prisma";
 
@@ -14,10 +14,6 @@ export async function GET(req: NextRequest) {
   try {
     const auth = await middleware(req);
 
-    if (auth instanceof NextResponse) {
-      return auth;
-    }
-    
     if (!auth.success) {
       return NextResponse.json(
         { error: auth.error || "Unauthorized" },
@@ -116,10 +112,6 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await middleware(req);
 
-    if (auth instanceof NextResponse) {
-      return auth;
-    }
-    
     if (!auth.success) {
       return NextResponse.json(
         { error: auth.error || "Unauthorized" },
@@ -193,8 +185,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error
-         },
+        { error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }

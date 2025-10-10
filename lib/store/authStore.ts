@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import {User} from '@prisma/client'////////////////////
+import { persist, createJSONStorage } from 'zustand/middleware'
+import {User} from '@prisma/client'
 
 interface AuthState {
   user: User | null
@@ -19,6 +19,10 @@ export const useAuthStore = create<AuthState>()(
       login: (token, user) => set({ token, user, isAuthenticated: true }),
       logout: () => set({ token: null, user: null, isAuthenticated: false }),
     }),
-    { name: 'auth-storage' }
+    {
+      name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: false,
+    }
   )
 )

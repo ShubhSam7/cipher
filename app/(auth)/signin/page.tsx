@@ -3,11 +3,13 @@
 import { ReactElement, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/store/authStore";
 
 type step_type = "email" | "username";
 
 export default function SignInPage() {
   const router = useRouter();
+  const login = useAuthStore((state) => state.login);
   const [currentStep, setCurrentStep] = useState<step_type>("email");
   const [formData, setFormData] = useState({
     user_handle: "",
@@ -42,6 +44,7 @@ export default function SignInPage() {
       const data = await response.json();
 
       if (response.ok) {
+        login(data.token, data.user);
         router.push("/feed");
       } else {
         setError(data.error || "Sign in failed");
@@ -76,6 +79,7 @@ export default function SignInPage() {
       const data = await response.json();
 
       if (response.ok) {
+        login(data.token, data.user);
         router.push("/feed");
       } else {
         setError(data.error || "Sign in failed");

@@ -1,9 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { cookies } from "next/headers";
 
-export async function POST(req: NextResponse){
+export async function POST(req: NextRequest){
     try{
-        const c_storage = cookies();
 
         const response = NextResponse.json({
             message: "Logged out successfully",

@@ -65,9 +65,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid step" }, { status: 400 });
     }
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation failed", details: error.issues },
+        { status: 400 }
+      );
+    }
     console.error("Signup error:", error);
     return NextResponse.json(
-      { error: "Validation failed", details: error },
+      { error: "Invalid request" },
       { status: 400 }
     );
   }

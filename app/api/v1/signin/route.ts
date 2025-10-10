@@ -43,7 +43,7 @@ const signin_with_email = async(body: any) => {
       { expiresIn: "1h" }
     );
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "User signed in successfully",
         token: token,
@@ -55,6 +55,16 @@ const signin_with_email = async(body: any) => {
       },
       { status: 200 }
     );
+
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 3600 // 1 hour
+    });
+
+    return response;
 }
 
 const signin_with_username = async(body: any) => {
@@ -95,7 +105,7 @@ const signin_with_username = async(body: any) => {
       { expiresIn: "1h" }
     );
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "User signed in successfully",
         token: token,
@@ -107,6 +117,16 @@ const signin_with_username = async(body: any) => {
       },
       { status: 200 }
     );
+
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 3600 // 1 hour
+    });
+
+    return response;
 }
 
 export async function POST(req: NextRequest) {
