@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import ShinyText from "@/components/ShinyText";
 import LightRays from "@/components/LightRays";
 import { useRouter } from "next/navigation";
+import { logout } from "./(auth)/logout";
 
 export default function Home() {
   const router = useRouter();
@@ -66,6 +67,12 @@ export default function Home() {
               className="px-8 py-3 text-base rounded-lg shadow-md border border-white hover:bg-cyan-100 transition-colors hover:text-cyan-800"
             >
               Sign Up
+            </Button>
+            <Button
+              onClick={logout}
+              className="px-8 py-3 text-base rounded-lg shadow-md border border-white hover:bg-cyan-100 transition-colors hover:text-cyan-800"
+            >
+              Logout
             </Button>
           </div>
         </main>
