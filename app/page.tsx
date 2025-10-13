@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/Button";
 import ShinyText from "@/components/ShinyText";
 import LightRays from "@/components/LightRays";
 import { useRouter } from "next/navigation";
-import { logout } from "./(auth)/logout";
+import { useLogout } from "./(auth)/logout";
 
 export default function Home() {
   const router = useRouter();
+  const { logout } = useLogout();
 
   const handleGetStarted = () => {
     router.push("/feed");
