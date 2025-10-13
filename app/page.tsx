@@ -5,10 +5,11 @@ import ShinyText from "@/components/ShinyText";
 import LightRays from "@/components/LightRays";
 import { useRouter } from "next/navigation";
 import { useLogout } from "./(auth)/logout";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const router = useRouter();
-  const { logout } = useLogout();
+  const { logout, isLoggedIn, setIsLoggedIn } = useLogout();
 
   const handleGetStarted = () => {
     router.push("/feed");
@@ -21,6 +22,11 @@ export default function Home() {
   const handleSignUp = () => {
     router.push("/signup");
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, [setIsLoggedIn]);
 
   return (
     <div className="font-sans relative min-h-screen">
@@ -56,26 +62,37 @@ export default function Home() {
             speed={3}
             className="text-3xl sm:text-4xl font-bold text-center max-w-2xl"
           />
-          <div className="flex gap-4 mt-4">
-            <Button
-              onClick={handleSignIn}
-              className="px-8 py-3 text-base rounded-lg shadow-md border border-white hover:bg-cyan-100 transition-colors hover:text-cyan-800"
-            >
-              Sign In
-            </Button>
-            <Button
-              onClick={handleSignUp}
-              className="px-8 py-3 text-base rounded-lg shadow-md border border-white hover:bg-cyan-100 transition-colors hover:text-cyan-800"
-            >
-              Sign Up
-            </Button>
-            <Button
-              onClick={logout}
-              className="px-8 py-3 text-base rounded-lg shadow-md border border-white hover:bg-cyan-100 transition-colors hover:text-cyan-800"
-            >
-              Logout
-            </Button>
-          </div>
+          {isLoggedIn ? (
+            <div className="flex gap-4 mt-4">
+              <Button
+                onClick={logout}
+                className="px-8 py-3 text-base rounded-lg shadow-md border border-white hover:bg-cyan-100 transition-colors hover:text-cyan-800"
+              >
+                Logout
+              </Button>
+              <Button
+                onClick={handleGetStarted}
+                className="px-8 py-3 text-base rounded-lg shadow-md border border-white hover:bg-cyan-100 transition-colors hover:text-cyan-800"
+              >
+                Get Started
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-4 mt-4">
+              <Button
+                onClick={handleSignIn}
+                className="px-8 py-3 text-base rounded-lg shadow-md border border-white hover:bg-cyan-100 transition-colors hover:text-cyan-800"
+              >
+                Sign In
+              </Button>
+              <Button
+                onClick={handleSignUp}
+                className="px-8 py-3 text-base rounded-lg shadow-md border border-white hover:bg-cyan-100 transition-colors hover:text-cyan-800"
+              >
+                Sign Up
+              </Button>
+            </div>
+          )}
         </main>
         <div />
       </div>
