@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { generateAnonymousHandle, cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/store/authStore";
 
 type SignupStep = "email" | "otp" | "complete";
 
@@ -17,6 +18,7 @@ interface FormData {
 
 export default function SignupPage() {
   const router = useRouter();
+  const login = useAuthStore((state) => state.login);
   const [currentStep, setCurrentStep] = useState<SignupStep>("email");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -181,6 +183,7 @@ export default function SignupPage() {
 
       if (response.ok) {
         setSuccess("Account created successfully! Redirecting...");
+        login(data.token, data.user);
         setTimeout(() => {
           router.push(data.redirectTo || "/feed");
         }, 2000);
