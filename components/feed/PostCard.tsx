@@ -31,23 +31,23 @@ export default function PostCard({
   };
 
   return (
-    <div className="bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:border-cyan-500/30 transition-all duration-300 shadow-lg">
+    <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800/50 hover:border-cyan-400/50 transition-all duration-300 shadow-lg">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
           <span className="text-white font-semibold text-sm">
             {username.charAt(0).toUpperCase()}
           </span>
         </div>
         <div>
           <p className="text-white font-medium">{username}</p>
-          <p className="text-gray-400 text-sm">{timestamp}</p>
+          <p className="text-gray-500 text-sm">{timestamp}</p>
         </div>
       </div>
 
       {/* Content */}
       <div className="mb-4">
-        <p className="text-gray-200 leading-relaxed">{content}</p>
+        <p className="text-gray-300 leading-relaxed">{content}</p>
       </div>
 
       {/* Action Buttons */}
@@ -56,8 +56,8 @@ export default function PostCard({
           onClick={handleLike}
           className={`flex items-center gap-2 transition-all duration-200 ${
             isLiked
-              ? "text-pink-500"
-              : "text-gray-400 hover:text-pink-500"
+              ? "text-cyan-400"
+              : "text-gray-500 hover:text-cyan-400"
           }`}
         >
           <Heart
@@ -66,14 +66,14 @@ export default function PostCard({
           <span className="text-sm font-medium">{likes > 0 ? likes : "like"}</span>
         </button>
 
-        <button className="flex items-center gap-2 text-gray-400 hover:text-cyan-500 transition-colors duration-200">
+        <button className="flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors duration-200">
           <MessageCircle className="w-5 h-5" />
           <span className="text-sm font-medium">
             {initialComments > 0 ? initialComments : "comment"}
           </span>
         </button>
 
-        <button className="flex items-center gap-2 text-gray-400 hover:text-blue-500 transition-colors duration-200">
+        <button className="flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors duration-200">
           <Share2 className="w-5 h-5" />
           <span className="text-sm font-medium">share</span>
         </button>

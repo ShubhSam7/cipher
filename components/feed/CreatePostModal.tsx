@@ -34,14 +34,14 @@ export default function CreatePostModal({ isOpen, onClose }: CreatePostModalProp
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-2xl bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="w-full max-w-2xl bg-black rounded-2xl shadow-2xl border border-gray-800/50 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800/50">
           <h2 className="text-xl font-bold text-white">Create a Post</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-500 hover:text-white transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -54,7 +54,7 @@ export default function CreatePostModal({ isOpen, onClose }: CreatePostModalProp
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="What's on your mind? Share your thoughts anonymously..."
-              className="w-full h-48 bg-gray-800/50 border border-gray-700 rounded-xl p-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all resize-none"
+              className="w-full h-48 bg-gray-900/50 border border-gray-700/50 rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400 transition-all resize-none"
               maxLength={1000}
             />
 
@@ -62,32 +62,32 @@ export default function CreatePostModal({ isOpen, onClose }: CreatePostModalProp
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="p-2 text-gray-400 hover:text-cyan-400 hover:bg-gray-800 rounded-lg transition-colors"
+                  className="p-2 text-gray-500 hover:text-cyan-400 hover:bg-gray-900 rounded-lg transition-colors"
                   title="Add image (coming soon)"
                 >
                   <Image className="w-5 h-5" />
                 </button>
                 <button
                   type="button"
-                  className="p-2 text-gray-400 hover:text-cyan-400 hover:bg-gray-800 rounded-lg transition-colors"
+                  className="p-2 text-gray-500 hover:text-cyan-400 hover:bg-gray-900 rounded-lg transition-colors"
                   title="Add emoji (coming soon)"
                 >
                   <Smile className="w-5 h-5" />
                 </button>
               </div>
 
-              <span className={`text-sm ${content.length > 900 ? "text-red-400" : "text-gray-500"}`}>
+              <span className={`text-sm ${content.length > 900 ? "text-red-400" : "text-gray-600"}`}>
                 {content.length}/1000
               </span>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-800/30 border-t border-gray-800">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-900/30 border-t border-gray-800/50">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-gray-500 hover:text-white transition-colors"
               disabled={isSubmitting}
             >
               Cancel
@@ -95,7 +95,7 @@ export default function CreatePostModal({ isOpen, onClose }: CreatePostModalProp
             <button
               type="submit"
               disabled={!content.trim() || isSubmitting}
-              className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-lg font-medium transition-all duration-200 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 border border-white hover:bg-cyan-100 hover:text-cyan-800 text-white rounded-lg font-medium transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">

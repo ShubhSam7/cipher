@@ -40,7 +40,7 @@ export default function Feed() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <div className="min-h-screen bg-black">
       <TopBar onCreatePost={() => setIsCreateModalOpen(true)} />
 
       <div className="flex">
@@ -49,11 +49,11 @@ export default function Feed() {
         {/* Main Feed Area */}
         <main className="flex-1 max-w-4xl mx-auto px-4 py-6 space-y-4">
           {/* Welcome Message */}
-          <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-2xl p-6 mb-6">
+          <div className="bg-gradient-to-r from-cyan-500/5 to-cyan-600/5 border border-cyan-400/20 rounded-2xl p-6 mb-6">
             <h1 className="text-2xl font-bold text-white mb-2">
               Welcome to Cipher Feed
             </h1>
-            <p className="text-gray-400">
+            <p className="text-gray-500">
               Share your thoughts anonymously with your college community
             </p>
           </div>
@@ -72,7 +72,7 @@ export default function Feed() {
 
           {/* Load More */}
           <div className="flex justify-center pt-6">
-            <button className="px-6 py-3 bg-gray-800/50 hover:bg-gray-800 border border-gray-700 text-gray-300 hover:text-white rounded-xl transition-all duration-200">
+            <button className="px-6 py-3 bg-black/50 hover:bg-gray-900 border border-gray-800 text-gray-400 hover:text-white rounded-xl transition-all duration-200">
               Load More Posts
             </button>
           </div>
@@ -82,28 +82,28 @@ export default function Feed() {
         <aside className="w-80 p-4 hidden lg:block">
           <div className="sticky top-20 space-y-4">
             {/* Trending Topics */}
-            <div className="bg-gray-800/40 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50">
+            <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-4 border border-gray-800/50">
               <h3 className="text-white font-semibold mb-3">Trending Topics</h3>
               <div className="space-y-2">
-                <div className="text-sm text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors">
+                <div className="text-sm text-gray-500 hover:text-cyan-400 cursor-pointer transition-colors">
                   #CampusLife
                 </div>
-                <div className="text-sm text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors">
+                <div className="text-sm text-gray-500 hover:text-cyan-400 cursor-pointer transition-colors">
                   #Exams2024
                 </div>
-                <div className="text-sm text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors">
+                <div className="text-sm text-gray-500 hover:text-cyan-400 cursor-pointer transition-colors">
                   #TechEvents
                 </div>
-                <div className="text-sm text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors">
+                <div className="text-sm text-gray-500 hover:text-cyan-400 cursor-pointer transition-colors">
                   #StudyTips
                 </div>
               </div>
             </div>
 
             {/* Community Guidelines */}
-            <div className="bg-gray-800/40 backdrop-blur-sm rounded-2xl p-4 border border-gray-700/50">
+            <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-4 border border-gray-800/50">
               <h3 className="text-white font-semibold mb-3">Guidelines</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
+              <ul className="space-y-2 text-sm text-gray-500">
                 <li>• Be respectful to everyone</li>
                 <li>• No personal information</li>
                 <li>• Stay anonymous & safe</li>

@@ -34,7 +34,7 @@ export default function Sidebar() {
   const router = useRouter();
 
   return (
-    <aside className="w-64 bg-gray-900/50 backdrop-blur-md border-r border-gray-800 h-screen sticky top-0 p-4 hidden md:block">
+    <aside className="w-64 bg-black border-r border-gray-800/50 h-screen sticky top-0 p-4 hidden md:block">
       <nav className="space-y-2">
         {navItems.map((item) => {
           const isActive = pathname === item.path;
@@ -44,8 +44,8 @@ export default function Sidebar() {
               onClick={() => router.push(item.path)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/50 text-cyan-400 shadow-lg shadow-cyan-500/20"
-                  : "text-gray-400 hover:bg-gray-800/50 hover:text-white border border-transparent"
+                  ? "bg-cyan-500/10 border border-cyan-400 text-cyan-400 shadow-lg shadow-cyan-500/10"
+                  : "text-gray-400 hover:bg-gray-900 hover:text-white border border-transparent"
               }`}
             >
               {item.icon}
@@ -56,12 +56,12 @@ export default function Sidebar() {
       </nav>
 
       {/* Divider */}
-      <div className="my-6 border-t border-gray-800"></div>
+      <div className="my-6 border-t border-gray-800/50"></div>
 
       {/* Additional Info */}
       <div className="px-4 space-y-2">
-        <p className="text-xs text-gray-500 uppercase tracking-wider">Quick Links</p>
-        <div className="space-y-1 text-sm text-gray-400">
+        <p className="text-xs text-gray-600 uppercase tracking-wider">QUICK LINKS</p>
+        <div className="space-y-1 text-sm text-gray-500">
           <p className="hover:text-cyan-400 cursor-pointer transition-colors">Privacy Policy</p>
           <p className="hover:text-cyan-400 cursor-pointer transition-colors">Terms of Service</p>
           <p className="hover:text-cyan-400 cursor-pointer transition-colors">Guidelines</p>
