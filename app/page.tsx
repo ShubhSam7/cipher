@@ -13,7 +13,6 @@ export default function Home() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Wait for Zustand to hydrate from localStorage
   useEffect(() => {
     setIsHydrated(true);
   }, []);
@@ -22,7 +21,6 @@ export default function Home() {
     setIsLoggingOut(true);
     try {
       await logout();
-      // Optional: Add a small delay for better UX
       await new Promise(resolve => setTimeout(resolve, 500));
     } finally {
       setIsLoggingOut(false);
