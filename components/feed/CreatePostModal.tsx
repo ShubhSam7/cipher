@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Image, Smile } from "lucide-react";
 
 interface CreatePostModalProps {
@@ -19,10 +19,17 @@ export default function CreatePostModal({ isOpen, onClose }: CreatePostModalProp
     setIsSubmitting(true);
 
     try {
-      // TODO: Call API to create post
+      const response = await fetch('api/v1/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'applicaiton/json',
+        },
+        body: JSON.stringify({content})
+      })
+      const data = await response.json();
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
 
-      setContent("");
+      setContent(() => data);
       onClose();
     } catch (error) {
       console.error("Failed to create post:", error);
