@@ -6,10 +6,12 @@ import { X, Image, Smile } from "lucide-react";
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onPostCreated: () => void;
 }
 
-export default function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
+export default function CreatePostModal({ isOpen, onClose, onPostCreated }: CreatePostModalProps) {
   const [content, setContent] = useState("");
+  // const [mediaFile, setMediaFile]
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,11 +26,16 @@ export default function CreatePostModal({ isOpen, onClose }: CreatePostModalProp
         headers: {
           'Content-Type': 'applicaiton/json',
         },
-        body: JSON.stringify({content})
+        body: JSON.stringify({
+          content: content.trim(),
+          mediaURL: [], // later to add the url of the post being added 
+          mediaType: [], // here alsoo
+          communityId: undefined //after community is getting made
+        })
       })
       const data = await response.json();
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-
+      onPostCreated();
       setContent(() => data);
       onClose();
     } catch (error) {
