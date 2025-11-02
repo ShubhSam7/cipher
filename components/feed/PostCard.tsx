@@ -11,6 +11,14 @@ interface PostCardProps {
   initialComments?: number;
 }
 
+// function HighlightHashtags(content:string): string{
+//   const hashtagRegex = /#(\w+)/g;
+//   const matches = content.match(hashtagRegex);
+//   if (!matches) return content;
+
+//   matches.map(tag => tag.slice(1).toLowerCase())
+// }
+
 export default function PostCard({
   username,
   timestamp,
@@ -30,6 +38,8 @@ export default function PostCard({
     setIsLiked(!isLiked);
   };
 
+  const parts = content.split(/(\#[a-zA-Z0-9_]+)/g);
+
   return (
     <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800/50 hover:border-cyan-400/50 transition-all duration-300 shadow-lg">
       {/* Header */}
@@ -47,7 +57,22 @@ export default function PostCard({
 
       {/* Content */}
       <div className="mb-4">
-        <p className="text-gray-300 leading-relaxed">{content}</p>
+        {/* <p className="text-gray-300 leading-relaxed">{HighlightHashtags(content)}</p> */}
+        
+        <p className="whitespace-pre-wrap">
+        {parts.map((part, index) =>
+        part.match(/\#[a-zA-Z0-9_]+/) ? (
+          <span
+            key={index}
+            className="text-blue-500 underline cursor-pointer"
+          >
+            {part}
+          </span>
+        ) : (
+          part
+        )
+      )}
+    </p>
       </div>
 
       {/* Action Buttons */}

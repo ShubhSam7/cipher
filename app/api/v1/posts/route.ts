@@ -10,6 +10,15 @@ const createPostSchema = z.object({
   communityId: z.string().optional(),
 });
 
+function extractHashtags(content: string): string[] {
+  const hashtagRegex = /#(\w+)/g;
+  const matches = content.match(hashtagRegex);
+  if (!matches) return [];
+  
+  // Remove duplicates and clean hashtags (remove # symbol)
+  return [...new Set(matches.map(tag => tag.slice(1).toLowerCase()))];
+}
+
 export async function GET(req: NextRequest) {
   try {
     const auth = await middleware(req);
@@ -135,45 +144,102 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const post = await prisma.post.create({
-      data: {
-        content: validatedData.content,
-        mediaURL: validatedData.mediaURL,
-        mediaType: validatedData.mediaType,
-        authorId: auth.userId!,
-        communityId: validatedData.communityId || null,
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            user_handle: true,
-            avatar: true,
-            bio: true,
-          },
-        },
-        community: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            avatar: true,
-          },
-        },
-      },
-    });
+    const hashtagNames = extractHashtags(validatedData.content);
 
+    // const post = await prisma.post.create({
+    //   data: {
+    //     content: validatedData.content,
+    //     mediaURL: validatedData.mediaURL,
+    //     mediaType: validatedData.mediaType,
+    //     authorId: auth.userId!,
+    //     communityId: validatedData.communityId || null,
+    //   },
+    //   include: {
+    //     author: {
+    //       select: {
+    //         id: true,
+    //         user_handle: true,
+    //         avatar: true,
+    //         bio: true,
+    //       },
+    //     },
+    //     community: {
+    //       select: {
+    //         id: true,
+    //         name: true,
+    //         slug: true,
+    //         avatar: true,
+    //       },
+    //     },
+    //   },
+    // });
+
+     const result = await prisma.$transaction(async (tx) => {
+      const post = await tx.post.create({
+        data: {
+          content: validatedData.content,
+          mediaURL: validatedData.mediaURL,
+          mediaType: validatedData.mediaType,
+          authorId: auth.userId!,
+          communityId: validatedData.communityId || null,
+        },
+        include: {
+          author: {
+            select: {
+              id: true,
+              user_handle: true,
+              avatar: true,
+              bio: true,
+            },
+          },
+          community: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              avatar: true,
+            },
+          },
+        },
+      });
+
+      const savedHashtags = [];
+      for (const tagName of hashtagNames) {
+        // Find or create hashtag (upsert = update or insert)
+        const hashtag = await tx.hashtag.upsert({
+          where: { name: tagName },
+          update: {}, // Don't update anything if it exists
+          create: { name: tagName },
+        });
+
+        // Link hashtag to post
+        await tx.postHashtag.create({
+          data: {
+            postId: post.id,
+            hashtagId: hashtag.id,
+          },
+        });
+
+        savedHashtags.push({
+          id: hashtag.id,
+          name: hashtag.name,
+        });
+      }
+
+      return { post, hashtags: savedHashtags };
+    });
     return NextResponse.json(
       {
         message: "Post created successfully",
         post: {
-          id: post.id,
-          content: post.content,
-          mediaURL: post.mediaURL,
-          mediaType: post.mediaType,
-          createdAt: post.createdAt,
-          author: post.author,
-          community: post.community,
+          id: result.post.id,
+          content: result.post.content,
+          mediaURL: result.post.mediaURL,
+          mediaType: result.post.mediaType,
+          createdAt: result.post.createdAt,
+          author: result.post.author,
+          community: result.post.community,
+          hashtag: result.hashtags,
           likeCount: 0,
           isLikedByUser: false,
           commentCount: 0,

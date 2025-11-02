@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.hashtags {
+  color: #06b6d4; /* cyan-500 */
+  text-decoration: none;
+}
+
+.hashtags:hover {
+  text-decoration: underline;
+}

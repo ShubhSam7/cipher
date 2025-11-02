@@ -60,7 +60,7 @@ export default function Feed() {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:3000/api/v1/posts?page=${page}&limit=10`,
+        `http://localhost:3004/api/v1/posts?page=${page}&limit=10`,
         {
           credentials: 'include', // Important for auth cookies
         }
