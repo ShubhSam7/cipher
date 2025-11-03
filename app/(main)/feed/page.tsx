@@ -60,7 +60,7 @@ export default function Feed() {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:3004/api/v1/posts?page=${page}&limit=10`,
+        `http://localhost:3000/api/v1/posts?page=${page}&limit=10`,
         {
           credentials: 'include', // Important for auth cookies
         }
@@ -71,9 +71,14 @@ export default function Feed() {
       }
 
       const data: PostsResponse = await response.json();
-      
+
       // Append new posts to existing ones (for "Load More")
-      setPosts((prevPosts) => [...prevPosts, ...data.posts]);
+      // Filter out duplicates based on post ID
+      setPosts((prevPosts) => {
+        const existingIds = new Set(prevPosts.map(p => p.id));
+        const newPosts = data.posts.filter(p => !existingIds.has(p.id));
+        return [...prevPosts, ...newPosts];
+      });
       setHasMore(data.pagination.hasMore);
       setError(null);
     } catch (err) {
@@ -155,6 +160,7 @@ export default function Feed() {
               content={post.content}
               initialLikes={post.likeCount}
               initialComments={post.commentCount}
+              id={post.id}
               // Optional: pass additional props if needed
               // avatar={post.author.avatar}
               // hashtags={post.hashtags}

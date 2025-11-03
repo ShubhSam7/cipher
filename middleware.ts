@@ -12,7 +12,8 @@ export async function middleware(request: NextRequest) {
                           pathname.startsWith('/community') ||
                           pathname.startsWith('/message') ||
                           pathname.startsWith('/profile') ||
-                          pathname.startsWith('/upload');
+                          pathname.startsWith('/upload') || 
+                          pathname.startsWith('/postlikes')
 
   // Check if user is authenticated
   let isAuthenticated = false;
@@ -50,6 +51,7 @@ export const config = {
     '/community/:path*',
     '/message/:path*',
     '/profile/:path*',
-    '/upload/:path*'
+    '/upload/:path*', 
+    '/postlikes/:path*'
   ]
 };
