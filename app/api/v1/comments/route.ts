@@ -123,30 +123,21 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await middleware(req);
-    const body = await req.json();
+    const { searchParams } = new URL(req.url);
+    const body = searchParams.get("postId");
 
-    const validatedData = getValidateSchema.parse(body);
-
-    if (!auth.success) {
-      return NextResponse.json(
-        { error: auth.error || "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    if (!validatedData.postId) {
+    if (!body) {
       return NextResponse.json(
         {
-          msg: "validated schema not verified",
+          msg: "postId is not found in the URL",
         },
-        { status: 401 }
+        { status: 400 }
       );
     }
 
     const user = await prisma.comment.findMany({
       where: {
-        postId: validatedData.postId,
+        postId: body,
       },
     });
 
@@ -167,7 +158,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const auth = await middleware(req);
     const body = await req.json();
-
+    console.log("authenticating");
     const validatedData = deleteValidateSchema.parse(body);
 
     if (!auth.success) {
@@ -186,16 +177,27 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
+    console.log("authenticated");
+
     const deleted = await prisma.comment.deleteMany({
       where: {
         id: validatedData.id,
+      },
+    });
+
+    const deleteReply = await prisma.comment.deleteMany({
+      where: {
         parentId: validatedData.id || null,
       },
     });
 
+    console.log("prisma delete done");
+
     if (deleted.count === 0) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
+
+    console.log("prisma delete checked");
 
     return NextResponse.json({
       success: true,
