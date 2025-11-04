@@ -6,22 +6,23 @@ import { middleware } from "@/lib/middleware";
 const validateSchema = z.object({
   content: z.string().min(1).max(100),
   postId: z.string(),
+  parentId: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const auth = await middleware(req);
     const body = await req.json();
-    console.log("middleware checked")
+
     if (!auth.success) {
       return NextResponse.json(
         { error: auth.error || "Unauthorized" },
         { status: 401 }
       );
     }
-    console.log("validating")
+;
     const validatedData = validateSchema.parse(body);
-    console.log("validated")
+
     if (!validatedData.content) {
       return NextResponse.json(
         {
@@ -29,8 +30,36 @@ export async function POST(req: NextRequest) {
         },
         { status: 401 }
       );
+    }// check for content
+
+    const postExists = await prisma.post.findUnique({
+      where: { id: validatedData.postId },
+    });
+
+    if (!postExists) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }// check for post
+
+    if (validatedData.parentId) {
+      const parentComment = await prisma.comment.findUnique({
+        where: { id: validatedData.parentId },
+      });
+
+      if (!parentComment) {
+        return NextResponse.json(
+          { error: "Parent comment not found" },
+          { status: 404 }
+        );
+      }// check for parent comment to be replied on
+
+      if (parentComment.postId !== validatedData.postId) {
+        return NextResponse.json(
+          { error: "Parent comment does not belong to this post" },
+          { status: 400 }
+        );
+      }// check for post and comment to be refferenced
     }
-    console.log("starting prisma")
+
     const user = await prisma.comment.create({
       //@ts-ignore
       data: {
@@ -47,6 +76,17 @@ export async function POST(req: NextRequest) {
             bio: true,
           },
         },
+        parent: validatedData.parentId ? {
+          select: {
+            id: true,
+            content: true,
+            author: {
+              select: {
+                user_handle: true
+              }
+            }
+          }
+        } : false
       },
     });
 
