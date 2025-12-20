@@ -9,20 +9,20 @@ datasource db {
 }
 
 model User {
-  id          String            @id @default(cuid())
-  email       String            @unique
-  user_handle String            @unique
-  password    String
-  year        String?
-  avatar      String?
-  bio         String?
-  posts       Post[]
-  comments    Comment[]
-  communities CommunityMember[]
-  postlikes   Postlike[]
-  commentLikes CommentLike[]
+  id                 String            @id @default(cuid())
+  email              String            @unique
+  user_handle        String            @unique
+  password           String
+  year               String?
+  avatar             String?
+  bio                String?
+  createdAt          DateTime          @default(now())
+  commentLikes       CommentLike[]
+  comments           Comment[]
   createdCommunities Community[]
-  createdAt   DateTime          @default(now())
+  communities        CommunityMember[]
+  postlikes          Postlike[]
+  posts              Post[]
 
   @@map("users")
 }
@@ -33,13 +33,13 @@ model Post {
   mediaURL    String[]
   mediaType   String[]
   authorId    String
-  author      User          @relation(fields: [authorId], references: [id])
   communityId String?
-  community   Community?    @relation(fields: [communityId], references: [id])
-  likes       Postlike[]
+  createdAt   DateTime      @default(now())
   comments    Comment[]
   hashtags    PostHashtag[]
-  createdAt   DateTime      @default(now())
+  likes       Postlike[]
+  author      User          @relation(fields: [authorId], references: [id])
+  community   Community?    @relation(fields: [communityId], references: [id])
 
   @@index([createdAt])
   @@index([communityId])
@@ -47,18 +47,18 @@ model Post {
 }
 
 model Community {
-  id           String            @id @default(cuid())
-  name         String            @unique
-  slug         String            @unique
-  description  String?           @db.Text
-  avatar       String?
-  creatorId    String
-  creator      User              @relation(fields: [creatorId], references: [id])
-  members      CommunityMember[]
-  posts        Post[]
-  isPublic     Boolean           @default(true)
-  memberCount  Int               @default(0)
-  createdAt    DateTime          @default(now())
+  id          String            @id @default(cuid())
+  name        String            @unique
+  slug        String            @unique
+  description String?
+  avatar      String?
+  creatorId   String
+  isPublic    Boolean           @default(true)
+  memberCount Int               @default(0)
+  createdAt   DateTime          @default(now())
+  creator     User              @relation(fields: [creatorId], references: [id])
+  members     CommunityMember[]
+  posts       Post[]
 
   @@map("communities")
 }
@@ -66,44 +66,38 @@ model Community {
 model CommunityMember {
   id          String     @id @default(cuid())
   userId      String
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   communityId String
-  community   Community  @relation(fields: [communityId], references: [id], onDelete: Cascade)
   role        MemberRole @default(MEMBER)
   joinedAt    DateTime   @default(now())
+  community   Community  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, communityId])
   @@map("community_members")
 }
 
-enum MemberRole {
-  ADMIN
-  MODERATOR
-  MEMBER
-}
-
 model Postlike {
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   postId String
   post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, postId])
   @@map("post_likes")
 }
 
 model Comment {
-  id       String        @id @default(cuid())
-  content  String
-  authorId String
-  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  postId   String
-  post     Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
-  parentId String?
-  parent   Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
-  replies  Comment[]     @relation("CommentReplies")
-  likes    CommentLike[]
-  createdAt DateTime     @default(now())
+  id        String        @id @default(cuid())
+  content   String
+  authorId  String
+  postId    String
+  parentId  String?
+  createdAt DateTime      @default(now())
+  likes     CommentLike[]
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[]     @relation("CommentReplies")
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([parentId])
@@ -112,9 +106,9 @@ model Comment {
 
 model CommentLike {
   userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   commentId String
   comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, commentId])
   @@map("comment_likes")
@@ -122,9 +116,9 @@ model CommentLike {
 
 model PostHashtag {
   postId    String
-  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   hashtagId String
   hashtag   Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@id([postId, hashtagId])
   @@map("post_hashtags")
@@ -133,9 +127,15 @@ model PostHashtag {
 model Hashtag {
   id        String        @id @default(cuid())
   name      String        @unique
-  posts     PostHashtag[]
   useCount  Int           @default(0)
   createdAt DateTime      @default(now())
+  posts     PostHashtag[]
 
   @@map("hashtags")
+}
+
+enum MemberRole {
+  ADMIN
+  MODERATOR
+  MEMBER
 }

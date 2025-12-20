@@ -19,9 +19,9 @@ interface LightRaysProps {
   lightSpread?: number;
   rayLength?: number;
   pulsating?: boolean;
-  fadeDistance?: number;
-  saturation?: number;
-  followMouse?: boolean;
+  fadetion?: number;
+  followMDistance?: number;
+  saturaouse?: boolean;
   mouseInfluence?: number;
   noiseAmount?: number;
   distortion?: number;

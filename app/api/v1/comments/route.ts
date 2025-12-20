@@ -9,10 +9,6 @@ const validateSchema = z.object({
   parentId: z.string().optional(),
 });
 
-const getValidateSchema = z.object({
-  postId: z.string(),
-});
-
 const deleteValidateSchema = z.object({
   id: z.string(),
 });
