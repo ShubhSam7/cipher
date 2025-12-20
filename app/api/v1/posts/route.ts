@@ -14,9 +14,9 @@ function extractHashtags(content: string): string[] {
   const hashtagRegex = /#(\w+)/g;
   const matches = content.match(hashtagRegex);
   if (!matches) return [];
-  
+
   // Remove duplicates and clean hashtags (remove # symbol)
-  return [...new Set(matches.map(tag => tag.slice(1).toLowerCase()))];
+  return [...new Set(matches.map((tag) => tag.slice(1).toLowerCase()))];
 }
 
 export async function GET(req: NextRequest) {
@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
     //   },
     // });
 
-     const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const post = await tx.post.create({
         data: {
           content: validatedData.content,
@@ -208,8 +208,15 @@ export async function POST(req: NextRequest) {
         // Find or create hashtag (upsert = update or insert)
         const hashtag = await tx.hashtag.upsert({
           where: { name: tagName },
-          update: {}, // Don't update anything if it exists
-          create: { name: tagName },
+          update: {
+            useCount: {
+              increment: 1,
+            },
+          },
+          create: {
+            name: tagName,
+            useCount: 1,
+          },
         });
 
         // Link hashtag to post

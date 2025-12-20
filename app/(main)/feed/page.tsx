@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import TopBar from "@/components/feed/TopBar";
 import Sidebar from "@/components/feed/Sidebar";
 import PostCard from "@/components/feed/PostCard";
@@ -50,6 +50,11 @@ export default function Feed() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [trendingTags, setTrendingTags] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+  const [trendingError, setTrendingError] = useState<string | null>(null);
 
   // Fetch posts
   useEffect(() => {
@@ -62,12 +67,12 @@ export default function Feed() {
       const response = await fetch(
         `http://localhost:3000/api/v1/posts?page=${page}&limit=10`,
         {
-          credentials: 'include', // Important for auth cookies
+          credentials: "include", // Important for auth cookies
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch posts');
+        throw new Error("Failed to fetch posts");
       }
 
       const data: PostsResponse = await response.json();
@@ -75,18 +80,52 @@ export default function Feed() {
       // Append new posts to existing ones (for "Load More")
       // Filter out duplicates based on post ID
       setPosts((prevPosts) => {
-        const existingIds = new Set(prevPosts.map(p => p.id));
-        const newPosts = data.posts.filter(p => !existingIds.has(p.id));
+        const existingIds = new Set(prevPosts.map((p) => p.id));
+        const newPosts = data.posts.filter((p) => !existingIds.has(p.id));
         return [...prevPosts, ...newPosts];
       });
       setHasMore(data.pagination.hasMore);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
+
+  const fetchTrendingTags = useCallback(async () => {
+    try {
+      setTrendingLoading(true);
+      const response = await fetch("/api/v1/trending", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch trending hashtags");
+      }
+
+      const data = await response.json();
+      setTrendingTags(
+        Array.isArray(data.tags)
+          ? data.tags.map((tag: { id: string; name: string }) => ({
+              id: tag.id,
+              name: tag.name,
+            }))
+          : []
+      );
+      setTrendingError(null);
+    } catch (err) {
+      setTrendingError(
+        err instanceof Error ? err.message : "Unable to load trending hashtags"
+      );
+    } finally {
+      setTrendingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTrendingTags();
+  }, [fetchTrendingTags]);
 
   const loadMore = () => {
     if (hasMore && !loading) {
@@ -102,7 +141,8 @@ export default function Feed() {
 
     if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}min ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
   };
 
@@ -198,18 +238,29 @@ export default function Feed() {
             <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-4 border border-gray-800/50">
               <h3 className="text-white font-semibold mb-3">Trending Topics</h3>
               <div className="space-y-2">
-                {posts.length > 0 &&
-                  posts
-                    .flatMap((post) => post.hashtags)
-                    .slice(0, 5)
-                    .map((hashtag, index) => (
-                      <div
-                        key={`${hashtag.id}-${index}`}
-                        className="text-sm text-gray-500 hover:text-cyan-400 cursor-pointer transition-colors"
-                      >
-                        #{hashtag.name}
-                      </div>
-                    ))}
+                {trendingLoading && (
+                  <p className="text-sm text-gray-500">
+                    Loading trending hashtags...
+                  </p>
+                )}
+                {trendingError && (
+                  <p className="text-sm text-red-400">{trendingError}</p>
+                )}
+                {!trendingLoading &&
+                  !trendingError &&
+                  trendingTags.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      No trending hashtags yet.
+                    </p>
+                  )}
+                {trendingTags.map((hashtag) => (
+                  <div
+                    key={hashtag.id}
+                    className="text-sm text-gray-500 hover:text-cyan-400 cursor-pointer transition-colors"
+                  >
+                    #{hashtag.name}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -236,6 +287,7 @@ export default function Feed() {
           setPosts([]);
           setPage(1);
           fetchPosts();
+          fetchTrendingTags();
         }}
       />
     </div>
