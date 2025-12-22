@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { middleware } from "@/lib/middleware";
 import prisma from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 
 const createPostSchema = z.object({
   content: z.string().min(1).max(500),
@@ -10,47 +9,6 @@ const createPostSchema = z.object({
   mediaType: z.array(z.string()).optional().default([]),
   communityId: z.string().optional(),
 });
-
-type PostWithRelations = Prisma.PostGetPayload<{
-  include: {
-    author: {
-      select: {
-        id: true;
-        user_handle: true;
-        avatar: true;
-        bio: true;
-      };
-    };
-    community: {
-      select: {
-        id: true;
-        name: true;
-        slug: true;
-        avatar: true;
-      };
-    };
-    likes: {
-      select: {
-        userId: true;
-      };
-    };
-    comments: {
-      select: {
-        id: true;
-      };
-    };
-    hashtags: {
-      include: {
-        hashtag: {
-          select: {
-            id: true;
-            name: true;
-          };
-        };
-      };
-    };
-  };
-}>;
 
 function extractHashtags(content: string): string[] {
   const hashtagRegex = /#(\w+)/g;
@@ -124,7 +82,7 @@ export async function GET(req: NextRequest) {
       prisma.post.count(),
     ]);
 
-    const transformedPosts = posts.map((post: PostWithRelations) => ({
+    const transformedPosts = posts.map((post) => ({
       id: post.id,
       content: post.content,
       mediaURL: post.mediaURL,
