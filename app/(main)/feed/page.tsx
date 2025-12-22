@@ -65,12 +65,9 @@ export default function Feed() {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `http://localhost:3000/api/v1/posts?page=${page}&limit=10`,
-        {
-          credentials: "include", // Important for auth cookies
-        }
-      );
+      const response = await fetch(`/api/v1/posts?page=${page}&limit=10`, {
+        credentials: "include", // Important for auth cookies
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch posts");
