@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await prisma.comment.create({
-      //@ts-ignore
       data: {
         content: validatedData.content.trim(),
         authorId: auth.userId,
@@ -181,7 +180,7 @@ export async function DELETE(req: NextRequest) {
       },
     });
 
-    const deleteReply = await prisma.comment.deleteMany({
+    await prisma.comment.deleteMany({
       where: {
         parentId: validatedData.id || null,
       },

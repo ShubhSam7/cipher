@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X, Image, Smile } from "lucide-react";
 
 interface CreatePostModalProps {
@@ -78,7 +78,9 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated }: Crea
                   type="button"
                   className="p-2 text-gray-500 hover:text-cyan-400 hover:bg-gray-900 rounded-lg transition-colors"
                   title="Add image (coming soon)"
+                  aria-label="Add image"
                 >
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
                   <Image className="w-5 h-5" />
                 </button>
                 <button

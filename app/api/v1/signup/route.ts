@@ -11,7 +11,7 @@ const validEmail = z.string().refine(
   (email) => {
     const match = email.match(/^bt(\d{2})([a-z]{3})(\d{3})@iiitn\.ac\.in$/);
     if (!match) return false;
-    const [, year, branch] = match;
+    const [, branch] = match;
     return allowedBranches.includes(branch);
   },
   { message: "Invalid IIITN email format" }
@@ -79,7 +79,17 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function sendOTP(body: any) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const checkingSchema = z.object({
+  email: z.string().email().optional(),
+  user_handle: z.string().optional(),
+  password: z.string().min(8).optional(),
+});
+
+type CheckingInput = z.infer<typeof checkingSchema>;
+
+
+async function sendOTP(body: CheckingInput) {
   const { email } = body;
   
   try {
@@ -92,7 +102,11 @@ async function sendOTP(body: any) {
     // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
+    if(!email){
+      return NextResponse.json({
+        "msg": "Email not found"
+      })
+    }
     otpStore.set(email, { otp, expires, verified: false });
 
     // Send email
@@ -113,6 +127,12 @@ async function sendOTP(body: any) {
       `,
     });
 
+    if(!email){
+      return NextResponse.json({
+        "msg": "Email not found"
+      })
+    }
+
     return NextResponse.json({
       message: "OTP sent successfully",
       email: email.replace(/(.{2})(.*)(@.*)/, "$1***$3"),
@@ -123,7 +143,7 @@ async function sendOTP(body: any) {
   }
 }
 
-async function verifyOTP(body: any) {
+async function verifyOTP(body: CheckingInput) {
   const { email, otp } = verifyOtpSchema.parse(body);
 
   const storedOTP = otpStore.get(email);
@@ -146,7 +166,7 @@ async function verifyOTP(body: any) {
   return NextResponse.json({ message: "OTP verified successfully" });
 }
 
-async function completeSignup(body: any) {
+async function completeSignup(body: CheckingInput) {
   const { email, user_handle, password } = completeSignupSchema.parse(body);
 
   // Check OTP verification
@@ -164,10 +184,9 @@ async function completeSignup(body: any) {
       return NextResponse.json({ error: "Username already taken" }, { status: 400 });
     }
 
-    // Extract year and branch from email
+    // Extract year from email
     const match = email.match(/^bt(\d{2})([a-z]{3})(\d{3})@iiitn\.ac\.in$/);
     const year = match ? `20${match[1]}` : null;
-    const branch = match ? match[2].toUpperCase() : null;
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);

@@ -22,10 +22,10 @@ export async function POST(req: NextRequest) {
     if(!auth.userId){
         return NextResponse.json(
             {
-                error: auth.error,
+                error: "userId not found",
                 status: 401,
-                msg: "userId not found"
-            }
+            },
+            { status: 401 }
         )
     }
 

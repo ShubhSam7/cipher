@@ -59,6 +59,7 @@ export default function Feed() {
   // Fetch posts
   useEffect(() => {
     fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   const fetchPosts = async () => {
