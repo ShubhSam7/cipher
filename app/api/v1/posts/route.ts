@@ -10,6 +10,38 @@ const createPostSchema = z.object({
   communityId: z.string().optional(),
 });
 
+interface PostWithRelations {
+  id: string;
+  content: string;
+  mediaURL: string[];
+  mediaType: string[];
+  createdAt: Date;
+  author: {
+    id: string;
+    user_handle: string;
+    avatar: string | null;
+    bio: string | null;
+  };
+  community: {
+    id: string;
+    name: string;
+    slug: string;
+    avatar: string | null;
+  } | null;
+  likes: {
+    userId: string;
+  }[];
+  comments: {
+    id: string;
+  }[];
+  hashtags: {
+    hashtag: {
+      id: string;
+      name: string;
+    };
+  }[];
+}
+
 function extractHashtags(content: string): string[] {
   const hashtagRegex = /#(\w+)/g;
   const matches = content.match(hashtagRegex);
@@ -82,7 +114,7 @@ export async function GET(req: NextRequest) {
       prisma.post.count(),
     ]);
 
-    const transformedPosts = posts.map((post) => ({
+    const transformedPosts = posts.map((post: PostWithRelations) => ({
       id: post.id,
       content: post.content,
       mediaURL: post.mediaURL,
