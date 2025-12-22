@@ -6,10 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
+    "prisma": "^6.16.2",
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.57.4",
     "@types/bcrypt": "^6.0.0",
@@ -43,7 +45,7 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
-    "prisma": "^6.16.2",
+    
     "tailwindcss": "^4",
     "typescript": "^5"
   }
