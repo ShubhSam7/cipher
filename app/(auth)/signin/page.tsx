@@ -209,6 +209,7 @@ export default function SignInPage() {
                 className="border-2 border-b-4"
                 onClick={(e) => {
                   setCurrentStep("email");
+                  console.log(e);
                 }}
               >
                 Email
@@ -217,6 +218,7 @@ export default function SignInPage() {
                 className="border-2 border-b-4"
                 onClick={(e) => {
                   setCurrentStep("username");
+                  console.log(e);
                 }}
               >
                 Username

@@ -5,7 +5,17 @@ import bcrypt from "bcrypt";
 import "dotenv/config";
 import z from 'zod'
 
-const signin_with_email = async(body: any) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const checkingSchema = z.object({
+  email: z.string().email().optional(),
+  user_handle: z.string().optional(),
+  password: z.string().min(8),
+});
+
+type CheckingInput = z.infer<typeof checkingSchema>;
+
+
+const signin_with_email = async(body: CheckingInput) => {
   const { email, password } = body;
 
     if (!email || !password) {
@@ -67,7 +77,7 @@ const signin_with_email = async(body: any) => {
     return response;
 }
 
-const signin_with_username = async(body: any) => {
+const signin_with_username = async(body: CheckingInput) => {
   const { user_handle, password } = body;
 
     if (!user_handle || !password) {

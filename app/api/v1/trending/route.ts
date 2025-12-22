@@ -5,10 +5,8 @@ import prisma from "@/lib/prisma";
 export async function GET(req: NextRequest) {
   try {
     const auth = await middleware(req);
-    //@ts-ignore
     if (!auth.success) {
       return NextResponse.json(
-        //@ts-ignore
         { error: auth.error || "Unauthorized" },
         { status: 401 }
       );
