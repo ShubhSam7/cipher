@@ -3,6 +3,11 @@ import { z } from "zod";
 import { middleware } from "@/lib/middleware";
 import prisma from "@/lib/prisma";
 
+// Use typeof to get the transaction client type from the prisma instance
+type TransactionClient = Parameters<
+  Parameters<typeof prisma.$transaction>[0]
+>[0];
+
 const createPostSchema = z.object({
   content: z.string().min(1).max(500),
   mediaURL: z.array(z.string().url()).optional().default([]),
@@ -10,36 +15,36 @@ const createPostSchema = z.object({
   communityId: z.string().optional(),
 });
 
+interface PostAuthor {
+  id: string;
+  user_handle: string;
+  avatar: string | null;
+  bio: string | null;
+}
+
+interface PostCommunity {
+  id: string;
+  name: string;
+  slug: string;
+  avatar: string | null;
+}
+
+interface PostHashtag {
+  id: string;
+  name: string;
+}
+
 interface PostWithRelations {
   id: string;
   content: string;
   mediaURL: string[];
   mediaType: string[];
   createdAt: Date;
-  author: {
-    id: string;
-    user_handle: string;
-    avatar: string | null;
-    bio: string | null;
-  };
-  community: {
-    id: string;
-    name: string;
-    slug: string;
-    avatar: string | null;
-  } | null;
-  likes: {
-    userId: string;
-  }[];
-  comments: {
-    id: string;
-  }[];
-  hashtags: {
-    hashtag: {
-      id: string;
-      name: string;
-    };
-  }[];
+  author: PostAuthor;
+  community: PostCommunity | null;
+  likes: { userId: string }[];
+  comments: { id: string }[];
+  hashtags: { hashtag: PostHashtag }[];
 }
 
 function extractHashtags(content: string): string[] {
@@ -178,35 +183,7 @@ export async function POST(req: NextRequest) {
 
     const hashtagNames = extractHashtags(validatedData.content);
 
-    // const post = await prisma.post.create({
-    //   data: {
-    //     content: validatedData.content,
-    //     mediaURL: validatedData.mediaURL,
-    //     mediaType: validatedData.mediaType,
-    //     authorId: auth.userId!,
-    //     communityId: validatedData.communityId || null,
-    //   },
-    //   include: {
-    //     author: {
-    //       select: {
-    //         id: true,
-    //         user_handle: true,
-    //         avatar: true,
-    //         bio: true,
-    //       },
-    //     },
-    //     community: {
-    //       select: {
-    //         id: true,
-    //         name: true,
-    //         slug: true,
-    //         avatar: true,
-    //       },
-    //     },
-    //   },
-    // });
-
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: TransactionClient) => {
       const post = await tx.post.create({
         data: {
           content: validatedData.content,
@@ -235,7 +212,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const savedHashtags = [];
+      const savedHashtags: PostHashtag[] = [];
       for (const tagName of hashtagNames) {
         // Find or create hashtag (upsert = update or insert)
         const hashtag = await tx.hashtag.upsert({
