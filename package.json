@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
-    "prisma": "^6.16.2",
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.57.4",
     "@types/bcrypt": "^6.0.0",
@@ -26,10 +25,11 @@
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.545.0",
-    "next": "15.5.3",
+    "next": "16.1.0",
     "nodemailer": "^7.0.6",
     "ogl": "^1.0.11",
     "pnpm": "^10.17.1",
+    "prisma": "^6.16.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.3.1",
@@ -45,7 +45,6 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
-    
     "tailwindcss": "^4",
     "typescript": "^5"
   }
