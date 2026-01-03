@@ -39,8 +39,6 @@ const completeSignupSchema = z.object({
   step: z.literal("complete-signup"),
 });
 
-const otpStore = new Map<string, { otp: string; expires: number; verified: boolean }>();
-
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -101,13 +99,19 @@ async function sendOTP(body: CheckingInput) {
 
     // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
-    const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     if(!email){
       return NextResponse.json({
         "msg": "Email not found"
       })
     }
-    otpStore.set(email, { otp, expires, verified: false });
+    
+    // Store OTP in database (upsert to handle re-sending)
+    await client.verificationToken.upsert({
+      where: { email },
+      update: { otp, expiresAt, verified: false },
+      create: { email, otp, expiresAt, verified: false },
+    });
 
     // Send email
     await transporter.sendMail({
@@ -146,13 +150,16 @@ async function sendOTP(body: CheckingInput) {
 async function verifyOTP(body: CheckingInput) {
   const { email, otp } = verifyOtpSchema.parse(body);
 
-  const storedOTP = otpStore.get(email);
+  const storedOTP = await client.verificationToken.findUnique({
+    where: { email },
+  });
+  
   if (!storedOTP) {
     return NextResponse.json({ error: "OTP not found" }, { status: 400 });
   }
 
-  if (Date.now() > storedOTP.expires) {
-    otpStore.delete(email);
+  if (Date.now() > storedOTP.expiresAt.getTime()) {
+    await client.verificationToken.delete({ where: { email } });
     return NextResponse.json({ error: "OTP expired" }, { status: 400 });
   }
 
@@ -161,7 +168,10 @@ async function verifyOTP(body: CheckingInput) {
   }
 
   // Mark as verified
-  otpStore.set(email, { ...storedOTP, verified: true });
+  await client.verificationToken.update({
+    where: { email },
+    data: { verified: true },
+  });
   
   return NextResponse.json({ message: "OTP verified successfully" });
 }
@@ -170,7 +180,9 @@ async function completeSignup(body: CheckingInput) {
   const { email, user_handle, password } = completeSignupSchema.parse(body);
 
   // Check OTP verification
-  const storedData = otpStore.get(email);
+  const storedData = await client.verificationToken.findUnique({
+    where: { email },
+  });
   if (!storedData || !storedData.verified) {
     return NextResponse.json({ error: "Email not verified" }, { status: 400 });
   }
@@ -200,7 +212,7 @@ async function completeSignup(body: CheckingInput) {
         year
       },
     });
-
+await client.verificationToken.delete({ where: { email } }
     // Clean up OTP
     otpStore.delete(email);
 

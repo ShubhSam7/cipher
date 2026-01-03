@@ -134,6 +134,18 @@ model Hashtag {
   @@map("hashtags")
 }
 
+model VerificationToken {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  otp       String
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("verification_tokens")
+}
+
 enum MemberRole {
   ADMIN
   MODERATOR
