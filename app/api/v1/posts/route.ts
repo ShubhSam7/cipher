@@ -68,6 +68,82 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
+    const postId = searchParams.get("postId");
+
+    // If postId is provided, fetch a single post
+    if (postId) {
+      const post = await prisma.post.findUnique({
+        where: { id: postId },
+        include: {
+          author: {
+            select: {
+              id: true,
+              user_handle: true,
+              avatar: true,
+              bio: true,
+            },
+          },
+          community: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              avatar: true,
+            },
+          },
+          likes: {
+            select: {
+              userId: true,
+            },
+          },
+          comments: {
+            select: {
+              id: true,
+            },
+          },
+          hashtags: {
+            include: {
+              hashtag: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!post) {
+        return NextResponse.json(
+          { error: "Post not found" },
+          { status: 404 }
+        );
+      }
+
+      const transformedPost = {
+        id: post.id,
+        content: post.content,
+        mediaURL: post.mediaURL,
+        mediaType: post.mediaType,
+        createdAt: post.createdAt,
+        author: post.author,
+        community: post.community,
+        likeCount: post.likes.length,
+        isLikedByUser: post.likes.some((like) => like.userId === auth.userId),
+        commentCount: post.comments.length,
+        hashtags: post.hashtags.map((ht) => ({
+          id: ht.hashtag.id,
+          name: ht.hashtag.name,
+        })),
+      };
+
+      return NextResponse.json({
+        post: transformedPost,
+      });
+    }
+
+    // Otherwise, return paginated posts
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;

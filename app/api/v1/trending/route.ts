@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: { useCount: "desc" },
-      take: 3,
+      take: 5,
     });
 
     if(!tags){

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 
 interface PostCardProps {
@@ -20,6 +21,7 @@ export default function PostCard({
   initialComments = 0,
   id
 }: PostCardProps) {
+  const router = useRouter();
   const [likes, setLikes] = useState(initialLikes);
   const [isLiked, setIsLiked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +48,8 @@ export default function PostCard({
     fetchLikeCount();
   }, [id]);
 
-  const handleLike = async () => {
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
     if (isLoading) return; // Prevent multiple clicks
 
     // Optimistic update
@@ -84,10 +87,22 @@ export default function PostCard({
     }
   };
 
-  const parts = content.split(/(\#[a-zA-Z0-9_]+)/g);
+  const handleCardClick = () => {
+    router.push(`/post/${id}`);
+  };
+
+  const handleCommentClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    router.push(`/post/${id}`);
+  };
+
+  const parts = content.split(/(#[a-zA-Z0-9_]+)/g);
 
   return (
-    <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800/50 hover:border-cyan-400/50 transition-all duration-300 shadow-lg">
+    <div 
+      onClick={handleCardClick}
+      className="bg-black/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800/50 hover:border-cyan-400/50 transition-all duration-300 shadow-lg cursor-pointer"
+    >
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
@@ -138,7 +153,10 @@ export default function PostCard({
           <span className="text-sm font-medium">{likes}</span>
         </button>
 
-        <button className="flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors duration-200">
+        <button 
+          onClick={handleCommentClick}
+          className="flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors duration-200"
+        >
           <MessageCircle className="w-5 h-5" />
           <span className="text-sm font-medium">
             {initialComments > 0 ? initialComments : "comment"}

@@ -3,30 +3,25 @@
 import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
-  TrendingUp,
   HelpCircle,
   Users,
   Settings,
-  BookOpen,
   Info,
-  LifeBuoy,
 } from "lucide-react";
 
 interface NavItem {
   name: string;
   path: string;
   icon: React.ReactNode;
+  status?: "active" | "coming-soon";
 }
 
 const navItems: NavItem[] = [
-  { name: "home", path: "/feed", icon: <Home className="w-5 h-5" /> },
-  { name: "popular", path: "/feed/popular", icon: <TrendingUp className="w-5 h-5" /> },
-  { name: "question", path: "/feed/question", icon: <HelpCircle className="w-5 h-5" /> },
-  { name: "community", path: "/feed/community", icon: <Users className="w-5 h-5" /> },
-  { name: "help", path: "/feed/help", icon: <LifeBuoy className="w-5 h-5" /> },
-  { name: "settings", path: "/settings", icon: <Settings className="w-5 h-5" /> },
-  { name: "blog", path: "/blog", icon: <BookOpen className="w-5 h-5" /> },
-  { name: "about", path: "/about", icon: <Info className="w-5 h-5" /> },
+  { name: "Home", path: "/feed", icon: <Home className="w-5 h-5" />, status: "active" },
+  { name: "Questions", path: "/questions", icon: <HelpCircle className="w-5 h-5" />, status: "coming-soon" },
+  { name: "Community", path: "/community", icon: <Users className="w-5 h-5" />, status: "coming-soon" },
+  { name: "Settings", path: "/settings", icon: <Settings className="w-5 h-5" />, status: "coming-soon" },
+  { name: "About", path: "/about", icon: <Info className="w-5 h-5" />, status: "active" },
 ];
 
 export default function Sidebar() {
@@ -38,18 +33,27 @@ export default function Sidebar() {
       <nav className="space-y-2">
         {navItems.map((item) => {
           const isActive = pathname === item.path;
+          const isComingSoon = item.status === "coming-soon";
+          
           return (
             <button
               key={item.path}
               onClick={() => router.push(item.path)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                 isActive
                   ? "bg-cyan-500/10 border border-cyan-400 text-cyan-400 shadow-lg shadow-cyan-500/10"
                   : "text-gray-400 hover:bg-gray-900 hover:text-white border border-transparent"
               }`}
             >
-              {item.icon}
-              <span className="font-medium">{item.name}</span>
+              <div className="flex items-center gap-3">
+                {item.icon}
+                <span className="font-medium">{item.name}</span>
+              </div>
+              {isComingSoon && (
+                <span className="text-xs px-2 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-400/20">
+                  Soon
+                </span>
+              )}
             </button>
           );
         })}

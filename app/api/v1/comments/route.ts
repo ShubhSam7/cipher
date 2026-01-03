@@ -4,9 +4,9 @@ import prisma from "@/lib/prisma";
 import { middleware } from "@/lib/middleware";
 
 const validateSchema = z.object({
-  content: z.string().min(1).max(100),
+  content: z.string().min(1).max(500),
   postId: z.string(),
-  parentId: z.string().optional(),
+  parentId: z.string().nullish(), // Accepts string | null | undefined
 });
 
 const deleteValidateSchema = z.object({
@@ -119,26 +119,48 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const body = searchParams.get("postId");
+    const postId = searchParams.get("postId");
+    const parentId = searchParams.get("parentId");
 
-    if (!body) {
+    if (!postId) {
       return NextResponse.json(
         {
-          msg: "postId is not found in the URL",
+          msg: "postId is required in the URL",
         },
         { status: 400 }
       );
     }
 
-    const user = await prisma.comment.findMany({
-      where: {
-        postId: body,
+    // Build where clause based on parentId parameter
+    const whereClause: any = { postId };
+    
+    // Only filter by parentId if explicitly requested (and not "null" string)
+    if (parentId && parentId !== "null") {
+      // Fetch replies for specific comment
+      whereClause.parentId = parentId;
+    }
+    // Otherwise, fetch ALL comments for the post (both top-level and replies)
+    // The frontend will organize them into a tree structure
+
+    const comments = await prisma.comment.findMany({
+      where: whereClause,
+      include: {
+        author: {
+          select: {
+            id: true,
+            user_handle: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
       },
     });
 
     return NextResponse.json({
-      msg: "All the comments are",
-      comments: user,
+      msg: "Comments fetched successfully",
+      comments: comments,
     });
   } catch (error) {
     console.error("Get comment error:", error);

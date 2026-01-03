@@ -7,9 +7,10 @@ import { useAuthStore } from "@/lib/store/authStore";
 
 interface TopBarProps {
   onCreatePost?: () => void;
+  onMenuClick?: () => void;
 }
 
-export default function TopBar({ onCreatePost }: TopBarProps) {
+export default function TopBar({ onCreatePost, onMenuClick }: TopBarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -32,7 +33,10 @@ export default function TopBar({ onCreatePost }: TopBarProps) {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-4">
-            <button className="md:hidden text-gray-400 hover:text-white">
+            <button 
+              onClick={onMenuClick}
+              className="md:hidden text-gray-400 hover:text-white"
+            >
               <Menu className="w-6 h-6" />
             </button>
             <div

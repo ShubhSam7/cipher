@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import TopBar from "@/components/feed/TopBar";
 import Sidebar from "@/components/feed/Sidebar";
+import MobileSidebar from "@/components/feed/MobileSidebar";
 import PostCard from "@/components/feed/PostCard";
 import CreatePostModal from "@/components/feed/CreatePostModal";
 
@@ -45,6 +46,7 @@ interface PostsResponse {
 
 export default function Feed() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,7 +148,15 @@ export default function Feed() {
 
   return (
     <div className="min-h-screen bg-black">
-      <TopBar onCreatePost={() => setIsCreateModalOpen(true)} />
+      <TopBar 
+        onCreatePost={() => setIsCreateModalOpen(true)} 
+        onMenuClick={() => setIsMobileMenuOpen(true)}
+      />
+      
+      <MobileSidebar 
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
 
       <div className="flex">
         <Sidebar />
@@ -154,14 +164,7 @@ export default function Feed() {
         {/* Main Feed Area */}
         <main className="flex-1 max-w-4xl mx-auto px-4 py-6 space-y-4">
           {/* Welcome Message */}
-          <div className="bg-gradient-to-r from-cyan-500/5 to-cyan-600/5 border border-cyan-400/20 rounded-2xl p-6 mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Welcome to College Gossips! 🎓
-            </h2>
-            <p className="text-gray-500">
-              Share your thoughts anonymously with your college community
-            </p>
-          </div>
+          
 
           {/* Error State */}
           {error && (
@@ -234,7 +237,7 @@ export default function Feed() {
           <div className="sticky top-20 space-y-4">
             {/* Trending Topics */}
             <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-4 border border-gray-800/50">
-              <h3 className="text-white font-semibold mb-3">Trending Topics</h3>
+              <h3 className="text-white font-semibold mb-3">Trending on your campus</h3>
               <div className="space-y-2">
                 {trendingLoading && (
                   <p className="text-sm text-gray-500">
@@ -260,17 +263,6 @@ export default function Feed() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Community Guidelines */}
-            <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-4 border border-gray-800/50">
-              <h3 className="text-white font-semibold mb-3">Guidelines</h3>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li>• Be respectful to everyone</li>
-                <li>• No personal information</li>
-                <li>• Stay anonymous & safe</li>
-                <li>• Report inappropriate content</li>
-              </ul>
             </div>
           </div>
         </aside>
