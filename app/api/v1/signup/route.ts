@@ -70,10 +70,7 @@ export async function POST(req: NextRequest) {
       );
     }
     console.error("Signup error:", error);
-    return NextResponse.json(
-      { error: "Invalid request" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
 
@@ -86,26 +83,28 @@ const checkingSchema = z.object({
 
 type CheckingInput = z.infer<typeof checkingSchema>;
 
-
 async function sendOTP(body: CheckingInput) {
   const { email } = body;
-  
+
   try {
     // Check if user already exists
     const existingUser = await client.user.findFirst({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ error: "User already exists" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User already exists" },
+        { status: 400 }
+      );
     }
 
     // Generate OTP
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    if(!email){
+    if (!email) {
       return NextResponse.json({
-        "msg": "Email not found"
-      })
+        msg: "Email not found",
+      });
     }
-    
+
     // Store OTP in database (upsert to handle re-sending)
     await client.verificationToken.upsert({
       where: { email },
@@ -131,10 +130,10 @@ async function sendOTP(body: CheckingInput) {
       `,
     });
 
-    if(!email){
+    if (!email) {
       return NextResponse.json({
-        "msg": "Email not found"
-      })
+        msg: "Email not found",
+      });
     }
 
     return NextResponse.json({
@@ -153,7 +152,7 @@ async function verifyOTP(body: CheckingInput) {
   const storedOTP = await client.verificationToken.findUnique({
     where: { email },
   });
-  
+
   if (!storedOTP) {
     return NextResponse.json({ error: "OTP not found" }, { status: 400 });
   }
@@ -172,7 +171,7 @@ async function verifyOTP(body: CheckingInput) {
     where: { email },
     data: { verified: true },
   });
-  
+
   return NextResponse.json({ message: "OTP verified successfully" });
 }
 
@@ -193,7 +192,10 @@ async function completeSignup(body: CheckingInput) {
       where: { user_handle },
     });
     if (existingHandle) {
-      return NextResponse.json({ error: "Username already taken" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Username already taken" },
+        { status: 400 }
+      );
     }
 
     // Extract year from email
@@ -209,12 +211,12 @@ async function completeSignup(body: CheckingInput) {
         email,
         user_handle,
         password: hashedPassword,
-        year
+        year,
       },
     });
-await client.verificationToken.delete({ where: { email } }
+
     // Clean up OTP
-    otpStore.delete(email);
+    await client.verificationToken.delete({ where: { email } });
 
     return NextResponse.json({
       message: "Account created successfully",
@@ -222,7 +224,7 @@ await client.verificationToken.delete({ where: { email } }
         id: user.id,
         email: user.email,
         user_handle: user.user_handle,
-        year: user.year
+        year: user.year,
       },
       redirectTo: "/feed",
     });
