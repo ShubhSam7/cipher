@@ -11,7 +11,7 @@ const validEmail = z.string().refine(
   (email) => {
     const match = email.match(/^bt(\d{2})([a-z]{3})(\d{3})@iiitn\.ac\.in$/);
     if (!match) return false;
-    const [, branch] = match;
+    const [, , branch] = match; // Skip first two elements: full match and year
     return allowedBranches.includes(branch);
   },
   { message: "Invalid IIITN email format" }

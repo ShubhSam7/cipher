@@ -251,7 +251,7 @@ export default function SignupPage() {
           type="email"
           id="email"
           placeholder="bt22cse001@iiitn.ac.in"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+          className="w-full px-4 text-black py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
         />
@@ -263,7 +263,7 @@ export default function SignupPage() {
       <Button
         onClick={handleSendOtp}
         disabled={loading || !formData.email}
-        className="w-full"
+        className="w-full text-black border"
       >
         {loading ? "Sending..." : "Send Verification Code"}
       </Button>
@@ -295,7 +295,7 @@ export default function SignupPage() {
           id="otp"
           placeholder="123456"
           maxLength={6}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-center text-2xl tracking-widest"
+          className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-center text-2xl tracking-widest"
           value={formData.otp}
           onChange={(e) => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, '') })}
         />
