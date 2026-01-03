@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search, Plus, Menu, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store/authStore";
+import styles from "./TopBar.module.css";
 
 interface TopBarProps {
   onCreatePost?: () => void;
@@ -33,7 +34,7 @@ export default function TopBar({ onCreatePost, onMenuClick }: TopBarProps) {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={onMenuClick}
               className="md:hidden text-gray-400 hover:text-white"
             >
@@ -53,7 +54,10 @@ export default function TopBar({ onCreatePost, onMenuClick }: TopBarProps) {
           </div>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="flex-1 max-w-xl mx-8 hidden sm:block">
+          <form
+            onSubmit={handleSearch}
+            className="flex-1 max-w-xl mx-8 hidden sm:block"
+          >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input
@@ -70,10 +74,10 @@ export default function TopBar({ onCreatePost, onMenuClick }: TopBarProps) {
           <div className="flex items-center gap-3">
             <button
               onClick={onCreatePost}
-              className="flex items-center gap-2 px-4 py-2 border border-white hover:bg-cyan-100 hover:text-cyan-800 text-white rounded-lg font-medium transition-all duration-200 shadow-md"
+              className={`${styles.glassButton} flex items-center gap-2 px-6 py-2.5 text-base rounded-full text-cyan-400 font-medium transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/20 active:scale-95`}
             >
               <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">create+</span>
+              <span className="hidden sm:inline">Create</span>
             </button>
 
             {/* User Menu */}
@@ -85,8 +89,12 @@ export default function TopBar({ onCreatePost, onMenuClick }: TopBarProps) {
               {/* Dropdown */}
               <div className="absolute right-0 mt-2 w-48 bg-black border border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                 <div className="p-3 border-b border-gray-800">
-                  <p className="text-white font-medium">{user?.user_handle || "Guest"}</p>
-                  <p className="text-gray-500 text-sm truncate">{user?.email || ""}</p>
+                  <p className="text-white font-medium">
+                    {user?.user_handle || "Guest"}
+                  </p>
+                  <p className="text-gray-500 text-sm truncate">
+                    {user?.email || ""}
+                  </p>
                 </div>
                 <div className="p-2">
                   <button
