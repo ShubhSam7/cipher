@@ -17,7 +17,7 @@ export default function Settings() {
   const [now] = useState(() => Date.now());
   if (!data || error) return <ResourceState error={error} retry={refresh} />;
   const cooldown = !!data.handleChangeAvailableAt && +new Date(data.handleChangeAvailableAt) > now;
-  return <div className="mx-auto max-w-xl space-y-6"><h1 className="text-2xl font-bold">Settings</h1><form key={`${data.user_handle}:${data.bio}`} className="space-y-5 rounded-2xl border bg-card p-6" onSubmit={async event => {
+  return <div className="page-stack"><header><h1 className="page-title">Settings</h1><p className="page-description">Make your campus identity feel like you.</p></header><form key={`${data.user_handle}:${data.bio}`} className="panel form-stack" onSubmit={async event => {
     event.preventDefault(); const form = new FormData(event.currentTarget); setBusy(true);
     try { const input = updateUserSchema.parse({ ...(cooldown ? {} : { user_handle: form.get("user_handle") }), bio: form.get("bio") }); if (input.user_handle && containsRollNumber(input.user_handle, data.email)) throw new Error("Don’t use your roll number in a public handle"); const user = await apiJSON<SessionUser>("/api/v1/me", jsonBody("PATCH", input)); useAuthStore.getState().login(user); refresh(); toast.success("Profile saved"); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Request failed"); refresh(); } finally { setBusy(false); }

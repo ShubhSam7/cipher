@@ -41,7 +41,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [expanded, setExpanded] = useState(isDetail);
   const href = `/post/${post.id}`;
-  const author = post.community ? `c/${post.community.name}` : `u/${post.author.user_handle}`;
+  const author = `u/${post.author.user_handle}`;
   const isLong = post.content.length > CLAMP_CHARS;
 
   const handleLike = async () => {

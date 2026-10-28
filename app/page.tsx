@@ -1,193 +1,57 @@
 import Link from "next/link";
-import {
-  ShieldCheck, VenetianMask, Zap, Heart, MessageCircle,
-  UserRound, Smile, BookOpen, Users, type LucideIcon,
-} from "lucide-react";
-import ShinyText from "@/components/ShinyText";
+import { ArrowUpRight, MessageCircle, ShieldCheck, Users, VenetianMask } from "lucide-react";
 import Logo from "@/components/Logo";
 import HomeNavbar from "@/components/HomeNavbar";
-import LandingRays from "@/components/landing/LandingRays";
 import HeroActions from "@/components/landing/HeroActions";
+import { UserAvatar } from "@/components/ui/avatar";
 
-const features: { icon: LucideIcon; title: string; body: string }[] = [
-  {
-    icon: ShieldCheck,
-    title: "Verified Campus Only",
-    body: "Access is restricted to verified college students, ensuring relevance, safety, and authentic campus culture.",
-  },
-  {
-    icon: VenetianMask,
-    title: "Pseudonymous by design",
-    body: "Post confessions, opinions, or thoughts without revealing your identity — a pseudonymous username, never your real name or roll number.",
-  },
-  {
-    icon: Zap,
-    title: "Live Campus Pulse",
-    body: "See what your campus is thinking in real-time — trending topics, viral posts, and raw conversations.",
-  },
+const preview = [
+  { handle: "midnight_mango", context: "Campus life", body: "The best part of an 8 am lecture is the chai with everyone after. That’s the post." },
+  { handle: "quiet_orbit", context: "Study circle", body: "Anyone up for a library study session? Working through graphs and could use a fresh perspective." },
+  { handle: "paper_plane", context: "Campus life", body: "A small shoutout to whoever returned my notebook to the library desk. You saved my week." },
 ];
-
-// Illustrative posts for the preview section; not real data.
-const samplePosts: {
-  icon: LucideIcon; tint: string; meta: string; body: React.ReactNode; likes: number; comments: number; wide?: boolean;
-}[] = [
-  {
-    icon: UserRound, tint: "bg-cyan-500/10 text-cyan-400", meta: "2 min ago • Confessions", likes: 234, comments: 89,
-    body: "I've been attending online lectures from my bed for the past week and the professor still thinks I'm the most attentive student 😅",
-  },
-  {
-    icon: Smile, tint: "bg-orange-500/10 text-orange-400", meta: "15 min ago • Campus Memes", likes: 567, comments: 143,
-    body: (
-      <>
-        When the professor says &quot;this will be easy&quot; before midterms 🚩🚩🚩
-        <span className="mt-2 block text-sm text-white/50">Narrator: It was not easy.</span>
-      </>
-    ),
-  },
-  {
-    icon: BookOpen, tint: "bg-purple-500/10 text-purple-400", meta: "1 hour ago • CS Department", likes: 156, comments: 67,
-    body: "Anyone else struggling with the DSA assignment? The deadline is tomorrow and I'm still stuck on question 2 😭",
-  },
-  {
-    icon: Zap, tint: "bg-pink-500/10 text-pink-400", meta: "3 hours ago • Trending", likes: 892, comments: 201,
-    body: "The canteen finally added the momos everyone was asking for! 🎉 Best decision they've made all semester",
-  },
-  {
-    icon: Users, tint: "bg-green-500/10 text-green-400", meta: "5 hours ago • Campus Life", likes: 445, comments: 98, wide: true,
-    body: "Shoutout to the seniors who organized the tech fest this year. The workshops were actually useful and the competitions were 🔥. Already looking forward to next year!",
-  },
+const features = [
+  { icon: ShieldCheck, title: "One campus, shared context", body: "Join with your IIIT Nagpur email. Talk to people who know the places, classes, and little things you mean." },
+  { icon: VenetianMask, title: "A pseudonym that’s yours", body: "Choose a public handle. Your email isn’t displayed on your profile or alongside your conversations." },
+  { icon: Users, title: "Find your corner", body: "Discover communities, ask a question, or take part in a campus poll. Start with what interests you." },
 ];
-
-const footerLinks = [
-  { href: "/feed", label: "Feed" },
-  { href: "/about", label: "About" },
-  { href: "/signin", label: "Sign in" },
-  { href: "/signup", label: "Sign up" },
-];
-
-const glassCard = "rounded-2xl border border-white/10 bg-white/5 backdrop-blur-lg transition-all duration-300";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden font-sans">
+    <div className="landing">
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-background focus:p-4">Skip to content</a>
       <HomeNavbar />
-      <LandingRays />
-
-      <main className="relative z-10">
-        <section className="flex min-h-screen flex-col items-center justify-center gap-8 px-6 pb-20 pt-28 sm:px-20">
-          <h1 className="max-w-2xl text-center text-3xl font-bold sm:text-4xl">
-            <ShinyText text="Welcome to the Social Media only made for College Gossips!" speed={3} />
-          </h1>
-          <HeroActions />
-        </section>
-
-        <section className="px-6 py-16 sm:px-20" aria-labelledby="features-heading">
-          <div className="mx-auto max-w-[1100px] space-y-16">
-            <div className="space-y-4 text-center">
-              <h2 id="features-heading" className="text-4xl font-bold text-white/90 sm:text-5xl">
-                A Campus Space Built on Anonymity &amp; Trust
-              </h2>
-              <p className="mx-auto max-w-3xl text-lg text-white/70 sm:text-xl">
-                Cipher is a closed social platform designed exclusively for college campuses — where ideas,
-                confessions, and conversations flow freely without identity pressure.
-              </p>
+      <main id="main">
+        <section className="landing-hero" aria-labelledby="hero-heading">
+          <div>
+            <p className="landing-eyebrow"><span className="eyebrow-rule" aria-hidden /> The IIIT Nagpur campus network</p>
+            <h1 id="hero-heading" className="landing-title">Your campus.<br /><span className="text-primary">Your conversations.</span></h1>
+            <p className="landing-copy">For the thoughts between classes. The questions after hours. And the people who get it. A campus space to read, share, and be yourself.</p>
+            <HeroActions />
+            <p className="metadata mt-6">Campus email to join. Public pseudonym to participate.</p>
+          </div>
+          <div className="landing-preview" aria-label="Illustrative feed preview">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b pb-4">
+              <span className="section-title">Around campus</span>
+              <span className="status-badge">Illustrative preview</span>
             </div>
-
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-              {features.map(({ icon: Icon, title, body }) => (
-                <div
-                  key={title}
-                  className={`group p-8 ${glassCard} hover:border-cyan-400/30 hover:shadow-xl hover:shadow-cyan-500/10 motion-safe:hover:-translate-y-1`}
-                >
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-cyan-500/10 transition-colors group-hover:bg-cyan-500/20">
-                    <Icon className="h-7 w-7 text-cyan-400" aria-hidden />
-                  </div>
-                  <h3 className="mb-4 text-xl font-semibold text-white">{title}</h3>
-                  <p className="text-white/70">{body}</p>
-                </div>
-              ))}
-            </div>
+            {preview.map(post => <article className="preview-post" key={post.handle}>
+              <header className="mb-3 flex items-center gap-3"><UserAvatar handle={post.handle} /><div className="min-w-0"><p className="text-sm font-semibold">u/{post.handle}</p><p className="metadata">{post.context}</p></div></header>
+              <p className="content-body">{post.body}</p>
+              <div className="metadata mt-3 flex items-center gap-2"><MessageCircle className="h-4 w-4" aria-hidden /><span>A conversation starts here</span></div>
+            </article>)}
           </div>
         </section>
-
-        <section className="relative px-6 py-16 sm:px-20" aria-labelledby="preview-heading">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-cyan-500/4 to-transparent blur-3xl" />
-          <div className="relative mx-auto max-w-[1200px] space-y-12">
-            <div className="space-y-6 text-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-4 py-2">
-                <span className="h-2 w-2 rounded-full bg-cyan-400 motion-safe:animate-pulse" aria-hidden />
-                <span className="text-sm font-semibold tracking-wider text-cyan-400">PREVIEW</span>
-              </div>
-              <h2 id="preview-heading" className="text-4xl font-bold text-white sm:text-5xl">Campus Feed</h2>
-              <p className="mx-auto max-w-3xl text-lg text-white/70 sm:text-xl">
-                A taste of what&apos;s happening on campus
-              </p>
-            </div>
-
-            <ul className="mx-auto grid max-w-5xl grid-cols-1 gap-6 lg:grid-cols-2">
-              {samplePosts.map(({ icon: Icon, tint, meta, body, likes, comments, wide }) => (
-                <li key={meta} className={`space-y-4 p-6 ${glassCard} ${wide ? "lg:col-span-2" : ""}`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-full ${tint}`}>
-                      <Icon className="h-5 w-5" aria-hidden />
-                    </span>
-                    <div>
-                      <p className="font-medium text-white/85">Anonymous</p>
-                      <p className="text-sm text-white/50">{meta}</p>
-                    </div>
-                  </div>
-                  <p className="text-base leading-relaxed text-white/75">{body}</p>
-                  <div className="flex items-center gap-6 pt-2 text-sm font-medium text-white/50">
-                    <span className="flex items-center gap-2">
-                      <Heart className="h-5 w-5" aria-hidden /> {likes}
-                      <span className="sr-only">likes</span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <MessageCircle className="h-5 w-5" aria-hidden /> {comments}
-                      <span className="sr-only">comments</span>
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            <div className="pt-4 text-center">
-              <Link
-                href="/feed"
-                className="inline-block rounded-full border border-cyan-400/20 bg-cyan-500/10 px-8 py-3 font-medium text-cyan-400 transition-all duration-300 hover:border-cyan-400/40 hover:bg-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/20"
-              >
-                See the real feed →
-              </Link>
-            </div>
-          </div>
+        <section className="landing-section" aria-labelledby="features-heading">
+          <p className="section-label mb-3">More than the class group chat</p>
+          <h2 id="features-heading" className="page-title">Make room for a different conversation.</h2>
+          <div className="landing-features">{features.map(({icon: Icon, title, body}, index) => <article key={title}>
+            <div className="mb-4 flex items-center justify-between"><Icon className="h-6 w-6 text-muted-foreground" aria-hidden /><span className="metadata">0{index + 1}</span></div>
+            <h3 className="section-title mb-3">{title}</h3><p className="text-muted-foreground">{body}</p>
+          </article>)}</div>
         </section>
       </main>
-
-      <footer className="relative z-10 mt-24 px-6 pb-12 sm:px-20">
-        <div className="mx-auto max-w-[1200px] rounded-3xl border border-white/6 bg-[rgba(10,10,12,0.8)] p-8 backdrop-blur-2xl sm:p-12">
-          <div className="mb-8 grid grid-cols-1 gap-12 md:grid-cols-2">
-            <div className="space-y-3">
-              <Logo />
-              <p className="text-white/70">Unfiltered campus conversations.</p>
-            </div>
-            <nav aria-label="Footer">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white/80">Navigate</h2>
-              <ul className="space-y-2">
-                {footerLinks.map(({ href, label }) => (
-                  <li key={href}>
-                    <Link href={href} className="text-white/70 transition-colors hover:text-cyan-400">
-                      {label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </div>
-          <p className="border-t border-white/6 pt-8 text-center text-sm text-white/50">
-            © {new Date().getFullYear()} Cipher. Built for campuses.
-          </p>
-        </div>
-      </footer>
+      <footer className="public-footer"><div><Logo /><p className="mt-2">© {new Date().getFullYear()} Cipher · Built for campus.</p></div><Link href="/about" className="text-action">Get to know Cipher <ArrowUpRight className="h-4 w-4" aria-hidden /></Link></footer>
     </div>
   );
 }

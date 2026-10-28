@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="text-6xl font-bold text-primary">404</p>
       <h1 className="text-2xl font-semibold">This page doesn&apos;t exist</h1>
       <p className="max-w-md text-muted-foreground">The link may be broken, or the post may have been removed.</p>
-      <Button asChild className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90">
+      <Button asChild className="mt-2">
         <Link href="/feed">Back to the feed</Link>
       </Button>
     </main>

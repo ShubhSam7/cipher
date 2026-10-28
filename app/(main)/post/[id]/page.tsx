@@ -32,7 +32,7 @@ export default async function PostPage({ params }: PostPageProps) {
   if (!post) notFound();
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="reading-column">
       <BackButton label="Back" />
       <h1 className="sr-only">Post by u/{post.author.user_handle}</h1>
       <PostCard post={post} isDetail />

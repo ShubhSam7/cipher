@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
@@ -21,11 +21,17 @@ export default function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
   const hydrated = useHydrated();
   const { user, logout } = useAuthStore();
   const openCreatePost = useUiStore((state) => state.setCreatePostOpen);
   const signedIn = hydrated && !!user;
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
 
   // Search is hashtag-only until full-text search exists.
   const handleSearch = (e: React.FormEvent) => {
@@ -49,7 +55,7 @@ export default function TopBar() {
             type="button"
             onClick={() => setIsMenuOpen(true)}
             aria-label="Open menu"
-            className="-ml-2 rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
+            className="-ml-2 flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
           >
             <Menu className="h-6 w-6" />
           </button>
@@ -57,17 +63,30 @@ export default function TopBar() {
         </div>
 
         {signedIn && (
-          <form onSubmit={handleSearch} role="search" className={`mx-4 max-w-xl flex-1 sm:block ${searchOpen ? "absolute inset-x-0 top-[68px] sm:top-[82px] m-0 border-b bg-background p-3" : "hidden"}`}>
+          <form
+            onSubmit={handleSearch}
+            role="search"
+            className="topbar-search-form"
+            data-open={searchOpen}
+            onKeyDown={event => {
+              if (event.key === "Escape" && searchOpen) {
+                event.preventDefault();
+                setSearchOpen(false);
+                if (searchButtonRef.current?.getClientRects().length) searchButtonRef.current.focus();
+              }
+            }}
+          >
             <label htmlFor="tag-search" className="sr-only">Search hashtags</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <input
+                ref={searchInputRef}
                 id="tag-search"
                 type="search"
                 placeholder="Search #hashtags"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="topbar-search h-10 w-full pl-10 pr-4 text-xs placeholder:text-muted-foreground focus-visible:outline-none"
+                className="topbar-search h-10 w-full pl-10 pr-4 text-sm placeholder:text-muted-foreground"
               />
             </div>
           </form>
@@ -76,9 +95,8 @@ export default function TopBar() {
         <div className="flex items-center gap-2">
           {signedIn ? (
             <>
-              <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => setSearchOpen(value => !value)} aria-label="Search hashtags" aria-expanded={searchOpen}><Search className="h-5 w-5" /></Button>
+              <Button ref={searchButtonRef} variant="ghost" size="icon" className="sm:hidden" onClick={() => setSearchOpen(value => !value)} aria-label="Search hashtags" aria-expanded={searchOpen} aria-controls="tag-search"><Search className="h-5 w-5" /></Button>
               <Button
-                variant="outline"
                 onClick={() => openCreatePost(true)}
                 className="create-post-action"
                 aria-label="Create post"
@@ -89,14 +107,14 @@ export default function TopBar() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger
-                  className="rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="flex h-11 w-11 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   aria-label="Account menu"
                 >
                   <UserAvatar handle={user.user_handle} size="sm" className="h-9 w-9" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>
-                    <p className="font-medium">u/{user.user_handle}</p>
+                    <p className="break-words font-medium">u/{user.user_handle}</p>
                     <p className="truncate text-sm font-normal text-muted-foreground">{user.email}</p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -112,7 +130,7 @@ export default function TopBar() {
             </>
           ) : (
             hydrated && (
-              <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button asChild size="sm">
                 <Link href="/signin">Sign in</Link>
               </Button>
             )

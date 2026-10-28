@@ -74,7 +74,7 @@ export default function CreatePostModal() {
 
           <div className="space-y-3 p-6">
             <label htmlFor="post-community" className="block text-sm font-medium">Post to</label>
-            <select id="post-community" className="w-full rounded-lg border bg-background p-2" value={communityId} onChange={event => setCommunityId(event.target.value)}><option value="">Campus feed</option>{communityData?.communities.filter(community => community.isMember).map(community => <option key={community.id} value={community.id}>c/{community.name}</option>)}</select>
+            <select id="post-community" className="control-select" value={communityId} onChange={event => setCommunityId(event.target.value)}><option value="">Campus feed</option>{communityData?.communities.filter(community => community.isMember).map(community => <option key={community.id} value={community.id}>c/{community.name}</option>)}</select>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <label htmlFor="post-content" className="sr-only">Post content</label>
             <Textarea
@@ -111,7 +111,7 @@ export default function CreatePostModal() {
             <Button
               type="submit"
               disabled={!content.trim() || isSubmitting}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
               {isSubmitting ? "Posting…" : "Post"}

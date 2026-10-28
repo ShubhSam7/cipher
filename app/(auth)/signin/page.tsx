@@ -110,7 +110,7 @@ export default function SignInPage() {
           type="submit"
           size="lg"
           disabled={loading}
-          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+          className="w-full"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
           {loading ? "Signing in…" : "Sign in"}

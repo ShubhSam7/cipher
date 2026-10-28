@@ -75,7 +75,7 @@ export default function CommentSection({ postId, postAuthorId }: { postId: strin
   const handleReply = (comment: CommentData) => {
     setReplyTo(comment);
     inputRef.current?.focus();
-    inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    inputRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
   };
 
   const handleSubmitComment = async (e: React.FormEvent) => {
@@ -146,7 +146,7 @@ export default function CommentSection({ postId, postAuthorId }: { postId: strin
               type="button"
               onClick={() => setReplyTo(null)}
               aria-label="Cancel reply"
-              className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>
@@ -167,14 +167,14 @@ export default function CommentSection({ postId, postAuthorId }: { postId: strin
         />
         {submitError && <p role="alert" className="mt-2 text-sm text-destructive">{submitError}</p>}
         <div className="mt-3 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
+          <span className="metadata">
             {newComment.length}/{MAX_CONTENT_LENGTH}
           </span>
           <Button
             type="submit"
             size="sm"
             disabled={!newComment.trim() || submitting}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
             {replyTo ? "Reply" : "Comment"}

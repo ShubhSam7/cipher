@@ -22,7 +22,7 @@ export default function Field({ id, label, error, hint, children }: FieldProps) 
         </p>
       )}
       {hint && (
-        <div id={`${id}-hint`} className="text-xs text-muted-foreground">
+        <div id={`${id}-hint`} className="text-sm text-muted-foreground">
           {hint}
         </div>
       )}

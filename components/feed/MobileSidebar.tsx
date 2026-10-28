@@ -23,12 +23,12 @@ export default function MobileSidebar({ isOpen, onOpenChange, returnFocusRef }: 
         }}
       >
         <div className="border-b p-4">
-          <SheetTitle className="text-xl font-bold text-primary">Cipher</SheetTitle>
+          <SheetTitle className="section-title">Cipher</SheetTitle>
         </div>
         <nav aria-label="Main" className="flex-1 overflow-y-auto p-4">
           <NavList onNavigate={() => onOpenChange(false)} />
         </nav>
-        <p className="border-t p-4 text-xs text-muted-foreground">© {new Date().getFullYear()} Cipher · IIIT Nagpur</p>
+        <p className="border-t p-4 metadata">© {new Date().getFullYear()} Cipher · IIIT Nagpur</p>
       </SheetContent>
     </Sheet>
   );

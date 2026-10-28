@@ -14,7 +14,7 @@ export default function MainError({ error, reset }: { error: Error & { digest?: 
       <h1 className="mb-2 text-xl font-semibold">Something went wrong</h1>
       <p className="mb-6 text-muted-foreground">This page failed to load. Try again, or head back to the feed.</p>
       <div className="flex justify-center gap-3">
-        <Button onClick={reset} className="bg-primary text-primary-foreground hover:bg-primary/90">Try again</Button>
+        <Button onClick={reset} >Try again</Button>
         <Button asChild variant="outline">
           <Link href="/feed">Go to feed</Link>
         </Button>

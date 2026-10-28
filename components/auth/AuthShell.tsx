@@ -1,4 +1,5 @@
 import Logo from "@/components/Logo";
+import { MessageCircle, ShieldCheck } from "lucide-react";
 
 interface AuthShellProps {
   title: string;
@@ -9,21 +10,25 @@ interface AuthShellProps {
 
 export default function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-12">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(ellipse_at_top,rgba(34,211,238,0.18),transparent_70%)]"
-      />
-      <main className="relative w-full max-w-md">
-        <Logo className="mx-auto mb-8 flex" />
-        <div className="rounded-2xl border bg-card/80 p-6 shadow-2xl backdrop-blur sm:p-8">
-          <div className="mb-6 text-center">
-            <h1 className="mb-1 text-2xl font-bold">{title}</h1>
-            <p className="text-muted-foreground">{subtitle}</p>
+    <div className="auth-shell">
+      <aside className="auth-story">
+        <Logo />
+        <div className="auth-story-copy">
+          <MessageCircle className="mb-6 h-8 w-8 text-primary" aria-hidden />
+          <h2>A little more campus. A little more you.</h2>
+          <p>Big questions, small observations, and the conversations between classes. There’s a place for all of it here.</p>
+          <div className="mt-8 flex items-start gap-3 border-t pt-6 text-sm text-muted-foreground">
+            <ShieldCheck className="mt-1 h-5 w-5 shrink-0" aria-hidden />
+            <span>For verified IIIT Nagpur students.<br />Participate with a public pseudonym.</span>
           </div>
-          {children}
         </div>
-        <div className="mt-6 text-center text-sm text-muted-foreground">{footer}</div>
+        <p className="metadata">Your campus. Your conversations.</p>
+      </aside>
+      <main className="auth-main">
+        <h1 className="page-title">{title}</h1>
+        <p className="page-description">{subtitle}</p>
+        {children}
+        <div className="auth-footer">{footer}</div>
       </main>
     </div>
   );

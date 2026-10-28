@@ -19,9 +19,9 @@ export function TrendingList({ tags, activeTag, error, onRetry }: {
     <section className="trend-panel" aria-labelledby={headingId}>
       <p className="section-label mb-3">CAMPUS PULSE</p>
       <h2 id={headingId} className="trend-title">On the radar.</h2>
-      {error && <p className="text-xs leading-relaxed text-muted-foreground">Couldn&apos;t load trending tags. <button className="text-foreground underline underline-offset-4" onClick={onRetry}>Retry</button></p>}
+      {error && <p className="text-sm leading-relaxed text-muted-foreground">Couldn&apos;t load trending tags. <button className="text-foreground underline underline-offset-4" onClick={onRetry}>Retry</button></p>}
       {!error && tags === null && <div className="space-y-6 py-3" aria-label="Loading trending tags">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-3 w-3/4" />)}</div>}
-      {!error && tags?.length === 0 && <p className="text-xs leading-relaxed text-muted-foreground">The next conversation starts with you.</p>}
+      {!error && tags?.length === 0 && <p className="text-sm leading-relaxed text-muted-foreground">The next conversation starts with you.</p>}
       {tags && tags.length > 0 && (
         <ol className="trend-list">
           {tags.map((tag, index) => (

@@ -13,21 +13,21 @@ export default function NavList({ onNavigate }: { onNavigate?: () => void }) {
       {navItems.map(({ name, path, icon: Icon }) => {
         const isActive = pathname === path || pathname.startsWith(`${path}/`);
         return (
-          <li key={path}>
+          <li key={path} className={path === "/settings" ? "nav-utility-start" : undefined}>
             <Link
               href={path}
               onClick={onNavigate}
               aria-current={isActive ? "page" : undefined}
+              aria-label={name}
               className={cn(
                 "nav-link flex items-center justify-between gap-3 transition-colors",
-                isActive
-                  ? "nav-link--active"
-                  : ""
+                isActive ? "nav-link--active" : "",
+                (path === "/settings" || path === "/about") && "nav-link--secondary"
               )}
             >
               <span className="flex items-center gap-3">
                 <Icon className="h-5 w-5" aria-hidden />
-                {name}
+                <span className="nav-label">{name}</span>
               </span>
 
             </Link>

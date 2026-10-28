@@ -3,7 +3,7 @@ import { apiFetch } from "@/lib/apiFetch";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { X, ArrowUpRight } from "lucide-react";
 import PinnedPoll from "@/components/polls/PinnedPoll";
 import FeedIntro from "@/components/feed/FeedIntro";
 import PostCard from "@/components/feed/PostCard";
@@ -149,7 +149,7 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
           </div>
         )}
 
-        <div className="stream-heading"><p className="section-label">LATEST CONVERSATIONS</p><span className="stream-order">Newest first</span></div>
+        <div className="stream-heading"><p className="section-label">Latest conversations</p><span className="stream-order">Newest first</span></div>
         {loading && visiblePosts.length === 0 && (
           <div className="space-y-1" aria-busy="true" aria-label="Loading posts">
             {[0, 1, 2].map(i => <PostSkeleton key={i} />)}
@@ -163,7 +163,7 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
             <p className="mb-4 text-lg text-muted-foreground">
               {tag ? `No posts tagged #${tag} yet.` : "No posts yet. Be the first to share something."}
             </p>
-            <Button onClick={() => openCreatePost(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button onClick={() => openCreatePost(true)} >
               Create a post
             </Button>
           </div>
@@ -186,7 +186,7 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
       <aside className="feed-rail" aria-label="Trending">
         <div>
           <TrendingTags activeTag={tag} refreshKey={createdPosts[0]?.id} />
-          <div className="rail-note"><span className="section-label">A LITTLE MORE CAMPUS.</span><p>Find your people.<br />Start a conversation worth having.</p><Link href="/community">Explore communities ↗</Link></div>
+          <div className="rail-note"><span className="section-label">A little more campus.</span><p>Find your people.<br />Start a conversation worth having.</p><Link href="/community" className="text-action">Explore communities <ArrowUpRight className="h-4 w-4" aria-hidden /></Link></div>
         </div>
       </aside>
     </div>
