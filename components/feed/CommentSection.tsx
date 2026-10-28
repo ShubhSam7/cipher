@@ -1,254 +1,232 @@
 "use client";
+import { apiFetch } from "@/lib/apiFetch";
 
-import { useState, useEffect } from "react";
-import CommentCard from "./CommentCard";
-import { Send } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { toast } from "sonner";
+import { Loader2, Send, X } from "lucide-react";
+import { createCommentSchema, type CreateCommentInput } from "@/lib/validation/comments";
+import { MAX_CONTENT_LENGTH } from "@/lib/validation/posts";
+import { useAuthStore } from "@/lib/store/authStore";
+import { Button } from "@/components/ui/Button";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import CommentCard, { type CommentData } from "./CommentCard";
 
-interface Comment {
-  id: string;
-  content: string;
-  author: {
-    id: string;
-    user_handle: string;
-    avatar: string | null;
-  };
-  createdAt: string;
-  parentId: string | null;
+interface ApiError {
+  error?: string;
+  details?: { message: string }[];
 }
 
-interface CommentSectionProps {
-  postId: string;
+function errorMessage(data: ApiError, fallback: string) {
+  return data.details?.[0]?.message ?? data.error ?? fallback;
 }
 
-export default function CommentSection({ postId }: CommentSectionProps) {
-  const [comments, setComments] = useState<Comment[]>([]);
+// Render with key={postId} so a different post starts from fresh state.
+export default function CommentSection({ postId, postAuthorId }: { postId: string; postAuthorId?: string }) {
+  const currentUserId = useAuthStore((state) => state.user?.id);
+  const [comments, setComments] = useState<CommentData[]>([]);
   const [newComment, setNewComment] = useState("");
-  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<CommentData | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<CommentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!postId) {
-      console.error("Cannot fetch comments: postId is missing");
-      setError("Unable to load comments - post ID is missing");
-      setLoading(false);
-      return;
-    }
-
-    const fetchComments = async () => {
-      try {
-        setLoading(true);
-        console.log("Fetching comments for postId:", postId);
-
-        const response = await fetch(`/api/v1/comments?postId=${postId}`, {
-          credentials: "include",
-        });
-
+    const controller = new AbortController();
+    apiFetch(`/api/v1/comments?postId=${encodeURIComponent(postId)}`, {
+      credentials: "include",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
         const data = await response.json();
-        console.log("Comments API response:", data);
-
-        if (!response.ok) {
-          console.error("Failed to fetch comments:", data);
-          throw new Error(data.error || data.msg || "Failed to fetch comments");
-        }
-
+        if (!response.ok) throw new Error(errorMessage(data, "Failed to load comments"));
         setComments(Array.isArray(data.comments) ? data.comments : []);
-        setError(null);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to load comments";
-        setError(errorMessage);
-        console.error("Fetch comments error:", errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchComments();
+        setLoadError(null);
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) {
+          setLoadError(err instanceof Error ? err.message : "Failed to load comments");
+        }
+      })
+      .finally(() => !controller.signal.aborted && setLoading(false));
+    return () => controller.abort();
   }, [postId]);
 
-  // Separate function to refresh comments (e.g., after posting)
-  const refreshComments = async () => {
-    if (!postId) return;
-
-    try {
-      setLoading(true);
-      console.log("Refreshing comments for postId:", postId);
-
-      const response = await fetch(`/api/v1/comments?postId=${postId}`, {
-        credentials: "include",
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setComments(Array.isArray(data.comments) ? data.comments : []);
-        setError(null);
+  const { topLevel, repliesByParent } = useMemo(() => {
+    const repliesByParent = new Map<string, CommentData[]>();
+    const topLevel: CommentData[] = [];
+    for (const comment of comments) {
+      if (comment.parentId) {
+        repliesByParent.set(comment.parentId, [...(repliesByParent.get(comment.parentId) ?? []), comment]);
+      } else {
+        topLevel.push(comment);
       }
-    } catch (err) {
-      console.error("Refresh comments error:", err);
-    } finally {
-      setLoading(false);
     }
+    return { topLevel, repliesByParent };
+  }, [comments]);
+
+  const handleReply = (comment: CommentData) => {
+    setReplyTo(comment);
+    inputRef.current?.focus();
+    inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || submitting) return;
 
+    setSubmitting(true);
+    setSubmitError(null);
     try {
-      setSubmitting(true);
-      setError(null); // Clear previous errors
+      const payload: CreateCommentInput = { content: newComment.trim(), postId };
+      if (replyTo) payload.parentId = replyTo.id;
 
-      const payload: {
-        content: string;
-        postId: string;
-        parentId?: string;
-      } = {
-        content: newComment.trim(),
-        postId,
-      };
-
-      // Only include parentId if it's not null
-      if (replyTo) {
-        payload.parentId = replyTo;
-      }
-
-      console.log("Submitting comment with payload:", payload);
-
-      const response = await fetch("/api/v1/comments", {
+      const response = await apiFetch("/api/v1/comments", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(payload),
+        body: JSON.stringify(createCommentSchema.parse(payload)),
       });
+      const data: ApiError & { comment?: CommentData } = await response.json();
+      if (!response.ok || !data.comment) throw new Error(errorMessage(data, "Failed to post comment"));
 
-      const data = await response.json();
-      console.log("Comment response:", { status: response.status, data });
-
-      if (!response.ok) {
-        // Show detailed error from API
-        if (data.details) {
-          // Zod validation errors
-          const errorMsg = data.details
-            .map((d: any) => `${d.path.join(".")}: ${d.message}`)
-            .join(", ");
-          throw new Error(`Validation error: ${errorMsg}`);
-        } else {
-          throw new Error(data.error || "Failed to post comment");
-        }
-      }
-
-      // Refresh comments
-      await refreshComments();
+      setComments((previous) => [...previous, data.comment!]);
       setNewComment("");
       setReplyTo(null);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to post comment";
-      setError(errorMessage);
-      console.error("Comment post error:", errorMessage);
+      setSubmitError(err instanceof Error ? err.message : "Failed to post comment");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleReply = (commentId: string) => {
-    setReplyTo(commentId);
-    // Focus on the input (you can add a ref if needed)
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      const response = await apiFetch("/api/v1/comments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id: pendingDelete.id }),
+      });
+      if (!response.ok) throw new Error(errorMessage(await response.json(), "Failed to delete comment"));
+
+      // The database cascades to replies, so drop them locally too.
+      const removedId = pendingDelete.id;
+      setComments((previous) => previous.filter((c) => c.id !== removedId && c.parentId !== removedId));
+      if (replyTo?.id === removedId) setReplyTo(null);
+      toast.success("Comment deleted");
+      setPendingDelete(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete comment");
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  // Organize comments into tree structure
-  const topLevelComments = comments.filter((c) => !c.parentId);
-  const getReplies = (commentId: string) =>
-    comments.filter((c) => c.parentId === commentId);
-
   return (
-    <div className="mt-8">
-      <h3 className="text-2xl font-bold text-white mb-6">
-        Comments ({comments.length})
-      </h3>
+    <section id="comments" className="mt-8 scroll-mt-20" aria-labelledby="comments-heading">
+      <h2 id="comments-heading" className="mb-4 text-xl font-bold">
+        Comments {!loading && <span className="text-muted-foreground">({comments.length})</span>}
+      </h2>
 
-      {/* Add Comment Form */}
-      <form onSubmit={handleSubmitComment} className="mb-8">
-        <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-4 border border-gray-800/50">
-          {replyTo && (
-            <div className="mb-3 flex items-center gap-2">
-              <span className="text-sm text-cyan-400">Replying to comment</span>
-              <button
-                type="button"
-                onClick={() => setReplyTo(null)}
-                className="text-xs text-gray-500 hover:text-white"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder={replyTo ? "Write a reply..." : "Write a comment..."}
-            className="w-full bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[80px]"
-            maxLength={500}
-          />
-          <div className="flex justify-between items-center mt-3">
-            <span className="text-xs text-gray-500">
-              {newComment.length}/500
-            </span>
+      <form onSubmit={handleSubmitComment} className="mb-6 rounded-2xl border bg-card p-4 focus-within:ring-2 focus-within:ring-ring">
+        {replyTo && (
+          <div className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-primary/10 px-3 py-1.5 text-sm">
+            <span className="truncate text-primary">Replying to u/{replyTo.author.user_handle}</span>
             <button
-              type="submit"
-              disabled={!newComment.trim() || submitting}
-              className="px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400/20 text-cyan-400 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              type="button"
+              onClick={() => setReplyTo(null)}
+              aria-label="Cancel reply"
+              className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              <Send className="w-4 h-4" />
-              <span>{submitting ? "Posting..." : "Post"}</span>
+              <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
+        )}
+        <label htmlFor="comment-input" className="sr-only">
+          {replyTo ? `Reply to u/${replyTo.author.user_handle}` : "Write a comment"}
+        </label>
+        <Textarea
+          id="comment-input"
+          onKeyDown={event => { if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }}
+          ref={inputRef}
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder={replyTo ? "Write a reply…" : "Write a comment…"}
+          maxLength={MAX_CONTENT_LENGTH}
+          className="border-0 bg-transparent p-0 focus-visible:ring-0"
+        />
+        {submitError && <p role="alert" className="mt-2 text-sm text-destructive">{submitError}</p>}
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {newComment.length}/{MAX_CONTENT_LENGTH}
+          </span>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={!newComment.trim() || submitting}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
+            {replyTo ? "Reply" : "Comment"}
+          </Button>
         </div>
       </form>
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6 text-red-400">
-          {error}
-        </div>
-      )}
-
-      {/* Loading State */}
       {loading && (
-        <div className="text-center py-8 text-gray-500">
-          Loading comments...
+        <div className="space-y-3" aria-busy="true" aria-label="Loading comments">
+          {[0, 1].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
         </div>
       )}
-
-      {/* Comments List */}
-      {!loading && topLevelComments.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          No comments yet. Be the first to comment!
-        </div>
+      {loadError && <p role="alert" className="text-destructive">{loadError}</p>}
+      {!loading && !loadError && comments.length === 0 && (
+        <p className="py-8 text-center text-muted-foreground">No comments yet. Start the conversation.</p>
       )}
 
-      {!loading &&
-        topLevelComments.map((comment) => (
+      <ul>
+        {topLevel.map((comment) => (
           <CommentCard
             key={comment.id}
-            id={comment.id}
-            content={comment.content}
-            author={comment.author}
-            createdAt={comment.createdAt}
-            replies={getReplies(comment.id).map((reply) => ({
-              id: reply.id,
-              content: reply.content,
-              author: reply.author,
-              createdAt: reply.createdAt,
-              onReply: handleReply,
-            }))}
+            comment={comment}
+            replies={repliesByParent.get(comment.id)}
+            currentUserId={currentUserId}
+            postAuthorId={postAuthorId}
             onReply={handleReply}
+            onDelete={setPendingDelete}
           />
         ))}
-    </div>
+      </ul>
+
+      <Dialog open={!!pendingDelete} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
+        <DialogContent hideClose className="max-w-sm">
+          <DialogHeader className="pb-2">
+            <DialogTitle>Delete comment?</DialogTitle>
+            <DialogDescription>
+              {pendingDelete && repliesByParent.has(pendingDelete.id)
+                ? "This also deletes all replies to it. This can't be undone."
+                : "This can't be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-4">
+            <Button variant="ghost" onClick={() => setPendingDelete(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 }

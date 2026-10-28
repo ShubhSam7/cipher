@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Non-production placeholders: route tests mock Prisma and SMTP.
+    env:
+      ADMIN_EMAILS: bt23csa041@iiitn.ac.in
+      JWT_SECRET: ci-only-secret-never-use-in-production
+      DATABASE_URL: postgresql://test:test@localhost:5432/cipher_test
+      DIRECT_URL: postgresql://test:test@localhost:5432/cipher_test
+      EMAIL_USER: test@example.com
+      EMAIL_PASS: ci-only-mail-password
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Next.js types
+        run: pnpm exec next typegen
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Test
+        run: pnpm test
+      - name: Build
+        run: pnpm build

@@ -2,55 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import client from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { z } from "zod";
-import nodemailer from "nodemailer";
-import crypto from "crypto";
-
-const allowedBranches = ["cse", "csa", "csd", "csh", "ece", "iot"];
-
-const validEmail = z.string().refine(
-  (email) => {
-    const match = email.match(/^bt(\d{2})([a-z]{3})(\d{3})@iiitn\.ac\.in$/);
-    if (!match) return false;
-    const [, , branch] = match; // Skip first two elements: full match and year
-    return allowedBranches.includes(branch);
-  },
-  { message: "Invalid IIITN email format" }
-);
-
-const signupSchema = z.object({
-  email: validEmail,
-  step: z.enum(["send-otp", "verify-otp", "complete-signup"]),
-});
-
-const verifyOtpSchema = z.object({
-  email: validEmail,
-  otp: z.string().length(6),
-  step: z.literal("verify-otp"),
-});
-
-const completeSignupSchema = z.object({
-  email: validEmail,
-  user_handle: z
-    .string()
-    .min(3)
-    .max(20)
-    .regex(/^[a-zA-Z0-9_]+$/, "Invalid user handle"),
-  password: z.string().min(8),
-  step: z.literal("complete-signup"),
-});
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+import crypto from "node:crypto";
+import { signupSchema, iiitnEmailPattern, type SendOtpInput, type VerifyOtpInput, type CompleteSignupInput } from "@/lib/validation/auth";
+import { sendOtpEmail } from "@/lib/mail";
+import { isAdmin } from "@/lib/admin";
+import { setSessionCookie } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { step } = signupSchema.parse(body);
+    const body = signupSchema.parse(await req.json());
+    const { step } = body;
 
     switch (step) {
       case "send-otp":
@@ -74,67 +35,48 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const checkingSchema = z.object({
-  email: z.string().email().optional(),
-  user_handle: z.string().optional(),
-  password: z.string().min(8).optional(),
-});
-
-type CheckingInput = z.infer<typeof checkingSchema>;
-
-async function sendOTP(body: CheckingInput) {
+async function sendOTP(body: SendOtpInput) {
   const { email } = body;
 
   try {
-    // Check if user already exists
-    const existingUser = await client.user.findFirst({ where: { email } });
+    const existingUser = await client.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json(
-        { error: "User already exists" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "User already exists" }, { status: 400 });
     }
 
-    // Generate OTP
-    const otp = crypto.randomInt(100000, 999999).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    if (!email) {
-      return NextResponse.json({
-        msg: "Email not found",
-      });
-    }
+    const otp = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+    const now = new Date();
+    const data = {
+      otp: crypto.createHash("sha256").update(otp).digest("hex"),
+      expiresAt: new Date(now.getTime() + 10 * 60 * 1000),
+      lastSentAt: now,
+      attempts: 0,
+      verified: false,
+    };
 
-    // Store OTP in database (upsert to handle re-sending)
-    await client.verificationToken.upsert({
-      where: { email },
-      update: { otp, expiresAt, verified: false },
-      create: { email, otp, expiresAt, verified: false },
+    // Creation and resends are gated in the database, including concurrent requests.
+    const created = await client.verificationToken.createMany({
+      data: [{ email, ...data }],
+      skipDuplicates: true,
     });
+    if (created.count === 0) {
+      const resent = await client.verificationToken.updateMany({
+        where: {
+          email,
+          lastSentAt: { lte: new Date(now.getTime() - 60_000) },
+        },
+        data,
+      });
+      if (resent.count === 0) {
+        return NextResponse.json(
+          { error: "Please wait 60 seconds before requesting another OTP" },
+          { status: 429, headers: { "Retry-After": "60" } }
+        );
+      }
+    }
 
     // Send email
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "IIIT Nagpur Cipher - Email Verification",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Welcome to IIIT Nagpur Platform Cipher</h2>
-          <p>Your verification code is:</p>
-          <div style="background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
-            ${otp}
-          </div>
-          <p>This code will expire in 10 minutes.</p>
-          <p>If you didn't request this, please ignore this email.</p>
-        </div>
-      `,
-    });
-
-    if (!email) {
-      return NextResponse.json({
-        msg: "Email not found",
-      });
-    }
+    await sendOtpEmail(email, otp);
 
     return NextResponse.json({
       message: "OTP sent successfully",
@@ -146,43 +88,64 @@ async function sendOTP(body: CheckingInput) {
   }
 }
 
-async function verifyOTP(body: CheckingInput) {
-  const { email, otp } = verifyOtpSchema.parse(body);
-
-  const storedOTP = await client.verificationToken.findUnique({
-    where: { email },
-  });
-
+async function verifyOTP(body: VerifyOtpInput) {
+  const { email, otp } = body;
+  const storedOTP = await client.verificationToken.findUnique({ where: { email } });
   if (!storedOTP) {
     return NextResponse.json({ error: "OTP not found" }, { status: 400 });
   }
-
-  if (Date.now() > storedOTP.expiresAt.getTime()) {
-    await client.verificationToken.delete({ where: { email } });
+  if (Date.now() >= storedOTP.expiresAt.getTime()) {
     return NextResponse.json({ error: "OTP expired" }, { status: 400 });
   }
-
-  if (storedOTP.otp !== otp) {
-    return NextResponse.json({ error: "Invalid OTP" }, { status: 400 });
+  if (storedOTP.attempts >= 5) {
+    return NextResponse.json({ error: "Too many attempts. Request a new OTP" }, { status: 429 });
   }
 
-  // Mark as verified
-  await client.verificationToken.update({
-    where: { email },
+  const suppliedHash = crypto.createHash("sha256").update(otp).digest();
+  const storedHash = Buffer.from(storedOTP.otp, "hex");
+  const matches = storedHash.length === suppliedHash.length &&
+    crypto.timingSafeEqual(storedHash, suppliedHash);
+
+  // Conditional writes prevent parallel attempts or resends from bypassing the limit.
+  const where = {
+    id: storedOTP.id,
+    otp: storedOTP.otp,
+    lastSentAt: storedOTP.lastSentAt,
+    verified: false,
+    attempts: { lt: 5 },
+    expiresAt: { gt: new Date() },
+  };
+  if (!matches) {
+    const attempt = await client.verificationToken.updateMany({
+      where,
+      data: { attempts: { increment: 1 } },
+    });
+    if (attempt.count === 0) {
+      return NextResponse.json({ error: "OTP unavailable. Request a new OTP" }, { status: 429 });
+    }
+    return NextResponse.json({ error: "Invalid OTP" }, { status: 400 });
+  }
+  if (storedOTP.verified) {
+    return NextResponse.json({ message: "OTP verified successfully" });
+  }
+  const verified = await client.verificationToken.updateMany({
+    where,
     data: { verified: true },
   });
-
+  if (verified.count === 0) {
+    return NextResponse.json({ error: "OTP unavailable. Request a new OTP" }, { status: 400 });
+  }
   return NextResponse.json({ message: "OTP verified successfully" });
 }
 
-async function completeSignup(body: CheckingInput) {
-  const { email, user_handle, password } = completeSignupSchema.parse(body);
+async function completeSignup(body: CompleteSignupInput) {
+  const { email, user_handle, password } = body;
 
   // Check OTP verification
   const storedData = await client.verificationToken.findUnique({
     where: { email },
   });
-  if (!storedData || !storedData.verified) {
+  if (!storedData || !storedData.verified || storedData.expiresAt.getTime() <= Date.now()) {
     return NextResponse.json({ error: "Email not verified" }, { status: 400 });
   }
 
@@ -199,35 +162,43 @@ async function completeSignup(body: CheckingInput) {
     }
 
     // Extract year from email
-    const match = email.match(/^bt(\d{2})([a-z]{3})(\d{3})@iiitn\.ac\.in$/);
+    const match = email.match(iiitnEmailPattern);
     const year = match ? `20${match[1]}` : null;
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
-    const user = await client.user.create({
-      data: {
-        email,
-        user_handle,
-        password: hashedPassword,
-        year,
-      },
+    // Consume the unexpired verification grant and create the account atomically.
+    const user = await client.$transaction(async (tx) => {
+      const consumed = await tx.verificationToken.deleteMany({
+        where: {
+          id: storedData.id,
+          otp: storedData.otp,
+          lastSentAt: storedData.lastSentAt,
+          verified: true,
+          expiresAt: { gt: new Date() },
+        },
+      });
+      if (consumed.count === 0) return null;
+      return tx.user.create({
+        data: { email, user_handle, password: hashedPassword, year },
+      });
     });
+    if (!user) {
+      return NextResponse.json({ error: "Email verification expired or already used" }, { status: 400 });
+    }
 
-    // Clean up OTP
-    await client.verificationToken.delete({ where: { email } });
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: "Account created successfully",
       user: {
         id: user.id,
         email: user.email,
-        user_handle: user.user_handle,
+        isAdmin: isAdmin(user.email), user_handle: user.user_handle,
         year: user.year,
       },
       redirectTo: "/feed",
     });
+    return await setSessionCookie(response, user);
   } catch (error) {
     console.error("Complete signup error:", error);
     return NextResponse.json(

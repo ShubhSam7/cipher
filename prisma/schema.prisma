@@ -13,6 +13,12 @@ model User {
   email              String            @unique
   user_handle        String            @unique
   password           String
+  handleChangedAt    DateTime?
+  questions          Question[]
+  answers            Answer[]
+  answerVotes        AnswerVote[]
+  polls              Poll[]
+  ballots            PollBallot[]
   year               String?
   avatar             String?
   bio                String?
@@ -41,7 +47,8 @@ model Post {
   author      User          @relation(fields: [authorId], references: [id])
   community   Community?    @relation(fields: [communityId], references: [id])
 
-  @@index([createdAt])
+  @@index([createdAt, id])
+  @@index([authorId])
   @@index([communityId])
   @@map("posts")
 }
@@ -95,12 +102,13 @@ model Comment {
   createdAt DateTime      @default(now())
   likes     CommentLike[]
   author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[]     @relation("CommentReplies")
   post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([parentId])
+  @@index([authorId])
   @@map("comments")
 }
 
@@ -125,24 +133,26 @@ model PostHashtag {
 }
 
 model Hashtag {
-  id        String        @id @default(cuid())
-  name      String        @unique
-  useCount  Int           @default(0)
-  createdAt DateTime      @default(now())
+  id        String            @id @default(cuid())
+  name      String            @unique
+  useCount  Int               @default(0)
+  createdAt DateTime          @default(now())
   posts     PostHashtag[]
+  questions QuestionHashtag[]
 
   @@map("hashtags")
 }
 
 model VerificationToken {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  otp       String
-  verified  Boolean  @default(false)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  email      String   @unique
+  otp        String
+  verified   Boolean  @default(false)
+  attempts   Int      @default(0)
+  lastSentAt DateTime
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
 
-  @@index([email])
   @@map("verification_tokens")
 }
 
@@ -150,4 +160,114 @@ enum MemberRole {
   ADMIN
   MODERATOR
   MEMBER
+}
+
+model Question {
+  id               String            @id @default(cuid())
+  title            String
+  body             String
+  authorId         String
+  acceptedAnswerId String?           @unique
+  createdAt        DateTime          @default(now())
+  author           User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  answers          Answer[]          @relation("QuestionAnswers")
+  acceptedAnswer   Answer?           @relation("AcceptedAnswer", fields: [acceptedAnswerId], references: [id], onDelete: SetNull)
+  hashtags         QuestionHashtag[]
+
+  @@index([createdAt, id])
+  @@index([authorId])
+  @@map("questions")
+}
+
+model Answer {
+  id         String       @id @default(cuid())
+  body       String
+  questionId String
+  authorId   String
+  createdAt  DateTime     @default(now())
+  question   Question     @relation("QuestionAnswers", fields: [questionId], references: [id], onDelete: Cascade)
+  acceptedBy Question?    @relation("AcceptedAnswer")
+  author     User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes      AnswerVote[]
+
+  @@index([questionId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("answers")
+}
+
+model AnswerVote {
+  userId   String
+  answerId String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answer   Answer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@id([userId, answerId])
+  @@index([answerId])
+  @@map("answer_votes")
+}
+
+model QuestionHashtag {
+  questionId String
+  hashtagId  String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  hashtag    Hashtag  @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, hashtagId])
+  @@index([hashtagId])
+  @@map("question_hashtags")
+}
+
+model Poll {
+  id            String       @id @default(cuid())
+  question      String
+  allowMultiple Boolean      @default(false)
+  endsAt        DateTime
+  closedAt      DateTime?
+  createdById   String
+  createdAt     DateTime     @default(now())
+  creator       User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  options       PollOption[]
+  ballots       PollBallot[]
+
+  @@index([createdAt])
+  @@index([endsAt])
+  @@map("polls")
+}
+
+model PollOption {
+  id       String     @id @default(cuid())
+  pollId   String
+  label    String
+  position Int
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes    PollVote[]
+
+  @@unique([pollId, position])
+  @@map("poll_options")
+}
+
+model PollBallot {
+  userId    String
+  pollId    String
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes     PollVote[]
+
+  @@id([userId, pollId])
+  @@index([pollId])
+  @@map("poll_ballots")
+}
+
+model PollVote {
+  userId   String
+  pollId   String
+  optionId String
+  ballot   PollBallot @relation(fields: [userId, pollId], references: [userId, pollId], onDelete: Cascade)
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, pollId, optionId])
+  @@index([optionId])
+  @@map("poll_votes")
 }

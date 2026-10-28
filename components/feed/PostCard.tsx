@@ -1,173 +1,163 @@
 "use client";
+import { apiFetch } from "@/lib/apiFetch";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
+import { toast } from "sonner";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
+import { postLikeSchema } from "@/lib/validation/posts";
+import type { PostDTO } from "@/lib/posts";
+import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui/avatar";
+import RelativeTime from "@/components/RelativeTime";
+
+const CLAMP_CHARS = 320;
 
 interface PostCardProps {
-  username: string;
-  timestamp: string;
-  content: string;
-  initialLikes?: number;
-  initialComments?: number;
-  id: string;
+  post: PostDTO;
+  // On the post page the card is the page itself, so it shouldn't link to itself.
+  isDetail?: boolean;
 }
 
-export default function PostCard({
-  username,
-  timestamp,
-  content,
-  initialLikes = 0,
-  initialComments = 0,
-  id
-}: PostCardProps) {
-  const router = useRouter();
-  const [likes, setLikes] = useState(initialLikes);
-  const [isLiked, setIsLiked] = useState(false);
+function PostContent({ content }: { content: string }) {
+  return content.split(/(#\w+)/g).map((part, index) =>
+    /^#\w+$/.test(part) ? (
+      <Link
+        key={index}
+        href={`/feed?tag=${encodeURIComponent(part.slice(1).toLowerCase())}`}
+        className="relative z-10 text-primary hover:underline"
+      >
+        {part}
+      </Link>
+    ) : (
+      part
+    )
+  );
+}
+
+export default function PostCard({ post, isDetail = false }: PostCardProps) {
+  const [likes, setLikes] = useState(post.likeCount);
+  const [isLiked, setIsLiked] = useState(post.isLikedByUser);
   const [isLoading, setIsLoading] = useState(false);
+  const [expanded, setExpanded] = useState(isDetail);
+  const href = `/post/${post.id}`;
+  const author = post.community ? `c/${post.community.name}` : `u/${post.author.user_handle}`;
+  const isLong = post.content.length > CLAMP_CHARS;
 
-  // Fetch initial like count when component mounts
-  useEffect(() => {
-    const fetchLikeCount = async () => {
-      try {
-        const response = await fetch(`/api/v1/postlikes?postId=${id}`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setLikes(data.likeCount);
-        }
-      } catch (error) {
-        console.error("Failed to fetch like count:", error);
-        // Keep using initialLikes if fetch fails
-      }
-    };
-
-    fetchLikeCount();
-  }, [id]);
-
-  const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
-    if (isLoading) return; // Prevent multiple clicks
-
-    // Optimistic update
-    const previousLikes = likes;
-    const previousIsLiked = isLiked;
-
+  const handleLike = async () => {
+    if (isLoading) return;
+    const previous = { likes, isLiked };
     setIsLoading(true);
     setIsLiked(!isLiked);
     setLikes(isLiked ? likes - 1 : likes + 1);
 
     try {
-      const method = isLiked ? 'DELETE' : 'POST';
-      const response = await fetch('/api/v1/postlikes', {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ postId: id }),
+      const response = await apiFetch("/api/v1/postlikes", {
+        method: isLiked ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(postLikeSchema.parse({ postId: post.id })),
       });
-
-      if (!response.ok) {
-        // Revert on failure
-        setIsLiked(previousIsLiked);
-        setLikes(previousLikes);
-        console.error('Failed to update like');
-      }
-    } catch (error) {
-      // Revert on error
-      setIsLiked(previousIsLiked);
-      setLikes(previousLikes);
-      console.error('Error updating like:', error);
+      if (!response.ok) throw new Error();
+    } catch {
+      setIsLiked(previous.isLiked);
+      setLikes(previous.likes);
+      toast.error("Couldn't update like. Try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCardClick = () => {
-    router.push(`/post/${id}`);
+  const handleShare = async () => {
+    const url = new URL(href, window.location.origin).toString();
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `Post by ${author}`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
+      }
+    } catch (err) {
+      if (!(err instanceof DOMException && err.name === "AbortError")) toast.error("Couldn't share this post");
+    }
   };
-
-  const handleCommentClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
-    router.push(`/post/${id}`);
-  };
-
-  const parts = content.split(/(#[a-zA-Z0-9_]+)/g);
 
   return (
-    <div 
-      onClick={handleCardClick}
-      className="bg-black/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800/50 hover:border-cyan-400/50 transition-all duration-300 shadow-lg cursor-pointer"
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-          <span className="text-white font-semibold text-sm">
-            {username.charAt(0).toUpperCase()}
-          </span>
-        </div>
-        <div>
-          <p className="text-white font-medium">{username}</p>
-          <p className="text-gray-500 text-sm">{timestamp}</p>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="mb-4">
-        {/* <p className="text-gray-300 leading-relaxed">{HighlightHashtags(content)}</p> */}
-        
-        <p className="whitespace-pre-wrap">
-        {parts.map((part, index) =>
-        part.match(/\#[a-zA-Z0-9_]+/) ? (
-          <span
-            key={index}
-            className="text-blue-500 underline cursor-pointer"
-          >
-            {part}
-          </span>
-        ) : (
-          part
-        )
+    <article
+      className={cn(
+        "relative rounded-2xl border bg-card p-5 shadow-lg transition-colors sm:p-6",
+        !isDetail && "hover:border-primary/50"
       )}
-    </p>
-      </div>
+    >
+      {!isDetail && (
+        <Link href={href} className="absolute inset-0 rounded-2xl" aria-label={`Open post by ${author}`} />
+      )}
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-6">
+      <header className="mb-4 flex items-center gap-3">
+        <UserAvatar handle={post.author.user_handle} src={post.author.avatar} />
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-1 text-sm font-medium">
+            {post.community && <><Link href={`/c/${post.community.slug}`} className="relative z-10 hover:underline">c/{post.community.name}</Link><span>•</span></>}
+            <Link href={`/u/${post.author.user_handle}`} className="relative z-10 hover:underline">u/{post.author.user_handle}</Link><span>•</span>
+            <RelativeTime date={post.createdAt} className="text-muted-foreground" />
+          </p>
+        </div>
+      </header>
+
+      <p
+        className={cn(
+          "mb-2 whitespace-pre-wrap break-words leading-relaxed text-foreground/90",
+          isLong && !expanded && "line-clamp-6"
+        )}
+      >
+        <PostContent content={post.content} />
+      </p>
+      {isLong && !isDetail && (
         <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="relative z-10 mb-2 text-sm font-medium text-primary hover:underline"
+          aria-expanded={expanded}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+
+      <div className="relative z-10 -ml-2 mt-2 flex w-fit items-center gap-1">
+        <button
+          type="button"
           onClick={handleLike}
           disabled={isLoading}
-          className={`flex items-center gap-2 transition-all duration-200 ${
-            isLiked
-              ? "text-cyan-400"
-              : "text-gray-500 hover:text-cyan-400"
-          } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+          aria-pressed={isLiked}
+          aria-label={`${isLiked ? "Unlike" : "Like"} post, ${likes} ${likes === 1 ? "like" : "likes"}`}
+          className={cn(
+            "flex min-h-10 items-center gap-2 rounded-lg px-2 transition-colors hover:bg-accent disabled:opacity-60",
+            isLiked ? "text-primary" : "text-muted-foreground hover:text-primary"
+          )}
         >
-          <Heart
-            className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`}
-          />
+          <Heart className={cn("h-5 w-5", isLiked && "fill-current")} aria-hidden />
           <span className="text-sm font-medium">{likes}</span>
         </button>
 
-        <button 
-          onClick={handleCommentClick}
-          className="flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors duration-200"
+        <Link
+          href={`${href}#comments`}
+          aria-label={`${post.commentCount} ${post.commentCount === 1 ? "comment" : "comments"}`}
+          className="flex min-h-10 items-center gap-2 rounded-lg px-2 text-muted-foreground transition-colors hover:bg-accent hover:text-primary"
         >
-          <MessageCircle className="w-5 h-5" />
-          <span className="text-sm font-medium">
-            {initialComments > 0 ? initialComments : "comment"}
-          </span>
-        </button>
+          <MessageCircle className="h-5 w-5" aria-hidden />
+          <span className="text-sm font-medium">{post.commentCount}</span>
+        </Link>
 
-        <button className="flex items-center gap-2 text-gray-500 hover:text-cyan-400 transition-colors duration-200">
-          <Share2 className="w-5 h-5" />
-          <span className="text-sm font-medium">share</span>
+        <button
+          type="button"
+          onClick={handleShare}
+          aria-label="Share post"
+          className="flex min-h-10 items-center gap-2 rounded-lg px-2 text-muted-foreground transition-colors hover:bg-accent hover:text-primary"
+        >
+          <Share2 className="h-5 w-5" aria-hidden />
+          <span className="hidden text-sm font-medium sm:inline">Share</span>
         </button>
       </div>
-    </div>
+    </article>
   );
 }

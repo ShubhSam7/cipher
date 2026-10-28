@@ -1,10 +1,2 @@
-import ComingSoon from "@/components/ComingSoon";
-
-export default function QuestionsPage() {
-  return (
-    <ComingSoon
-      title="Questions"
-      description="Ask and answer campus questions. Share knowledge with your college community."
-    />
-  );
-}
+import QuestionList from "@/components/questions/QuestionList";
+export default async function Page({ searchParams }: { searchParams: Promise<{ tag?: string }> }) { const { tag } = await searchParams; return <QuestionList key={tag ?? ""} tag={tag ?? ""} />; }

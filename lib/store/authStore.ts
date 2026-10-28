@@ -1,12 +1,12 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import {User} from '@prisma/client'
+import type { SessionUser } from "@/lib/validation/auth"
 
 interface AuthState {
-  user: User | null
-  token: string | null
+  user: SessionUser | null
   isAuthenticated: boolean
-  login: (token: string, user: User) => void
+  login: (user: SessionUser) => void
+  clear: () => void
   logout: () => Promise<void>
 }
 
@@ -14,9 +14,9 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
       isAuthenticated: false,
-      login: (token, user) => set({ token, user, isAuthenticated: true }),
+      login: (user) => set({ user, isAuthenticated: true }),
+      clear: () => set({ user: null, isAuthenticated: false }),
       logout: async () => {
         // Call the API to clear the HTTP-only cookie
         try {
@@ -28,11 +28,15 @@ export const useAuthStore = create<AuthState>()(
           console.error('Logout API call failed:', error);
         }
         // Clear client-side state regardless of API call result
-        set({ token: null, user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false });
       },
     }),
     {
       name: 'auth-storage',
+      version: 2,
+      // Discard legacy sessions, including tokens previously persisted in v0.
+      migrate: () => ({ user: null, isAuthenticated: false }),
+      partialize: ({ user, isAuthenticated }) => ({ user, isAuthenticated }),
       storage: createJSONStorage(() => localStorage),
       skipHydration: false,
     }

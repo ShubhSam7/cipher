@@ -12,7 +12,6 @@ const animals = ['tiger', 'eagle', 'wolf', 'fox', 'bear']
 export function generateAnonymousHandle(): string {
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
   const animal = animals[Math.floor(Math.random() * animals.length)]
-  const number = Math.floor(Math.random() * 999) + 1
-  
-  return `anon_${adj}_${animal}_${number}`
+  const number = Math.floor(Math.random() * 10000).toString().padStart(4, "0")
+  return `${adj}_${animal}_${number}`
 }

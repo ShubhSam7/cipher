@@ -1,54 +1,55 @@
 "use client";
 
-import { ReactElement, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { safeNext } from "@/lib/navigation";
 import { useAuthStore } from "@/lib/store/authStore";
-
-type step_type = "email" | "username";
+import { signinSchema, type SessionUser } from "@/lib/validation/auth";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import AuthShell from "@/components/auth/AuthShell";
+import Field from "@/components/auth/Field";
+import PasswordInput from "@/components/auth/PasswordInput";
 
 export default function SignInPage() {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
-  const [currentStep, setCurrentStep] = useState<step_type>("email");
-  const [formData, setFormData] = useState({
-    user_handle: "",
-    email: "",
-    password: "",
-  });
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-////////////////////////////////////////////////////////////////
-
-  const handleSignInwithEmail = async () => {
-    if (!formData.email || !formData.password) {
-      setError("Please fill in all fields");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const id = identifier.trim();
+    // One field for both: anything with an @ is treated as an email.
+    const parsed = signinSchema.safeParse(
+      id.includes("@")
+        ? { step: "email", email: id.toLowerCase(), password }
+        : { step: "username", user_handle: id.replace(/^u\//, ""), password }
+    );
+    if (!parsed.success) {
+      setError(id ? "Enter a valid email or username and a password of at least 8 characters." : "Enter your email or username.");
       return;
     }
 
     setLoading(true);
     setError("");
-
     try {
       const response = await fetch("/api/v1/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          step: "email",
-        }),
+        body: JSON.stringify(parsed.data),
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        login(data.token, data.user);
-        router.push("/feed");
-      } else {
-        setError(data.error || "Sign in failed");
+      const data: { user?: SessionUser; error?: string } = await response.json();
+      if (!response.ok || !data.user) {
+        setError(response.status === 401 ? "Incorrect email/username or password." : data.error || "Sign in failed");
+        return;
       }
+      login(data.user);
+      router.replace(safeNext(new URLSearchParams(window.location.search).get("next")));
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -56,200 +57,65 @@ export default function SignInPage() {
     }
   };
 
-  const handleSignInwithUsername = async () => {
-      if (!formData.user_handle || !formData.password) {
-      setError("Please fill in all fields");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/v1/signin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_handle: formData.user_handle,
-          password: formData.password,
-          step: "username",
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        login(data.token, data.user);
-        router.push("/feed");
-      } else {
-        setError(data.error || "Sign in failed");
-      }
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const choose_email = ():ReactElement => {
-    return(<div className="space-y-6 text-black">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                placeholder="your.email@iiitn.ac.in"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                placeholder="Enter your password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-              />
-            </div>
-
-            <Button
-              onClick={handleSignInwithEmail}
-              disabled={loading || !formData.email || !formData.password}
-              className="w-full"
-            >
-              {loading ? "Signing In..." : "Sign In"}
-            </Button>
-          </div>)
-  }
-
-  const choose_username = ():ReactElement => {
-    return(<div className="space-y-6 text-black">
-            <div>
-              <label
-                htmlFor="Username"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Username
-              </label>
-              <input
-                type="text"
-                id="username"
-                placeholder="Your unique username"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                value={formData.user_handle}
-                onChange={(e) =>
-                  setFormData({ ...formData, user_handle: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                placeholder="Enter your password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-              />
-            </div>
-
-            <Button
-              onClick={handleSignInwithUsername}
-              disabled={loading || !formData.user_handle || !formData.password}
-              className="w-full"
-            >
-              {loading ? "Signing In..." : "Sign In"}
-            </Button>
-          </div>)
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome Back
-            </h2>
-            <p className="text-gray-600">Sign in to your account</p>
+    <AuthShell
+      title="Welcome back"
+      subtitle="Sign in to your campus feed"
+      footer={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-medium text-primary hover:underline">
+            Sign up
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        {error && (
+          <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
           </div>
+        )}
 
-          <div className="text-black">
-            Choose to signin with Email or Username
-            <div className="flex justify-center space-x-2">
-              <Button 
-                className="border-2 border-b-4"
-                onClick={(e) => {
-                  setCurrentStep("email");
-                  console.log(e);
-                }}
-              >
-                Email
-              </Button>
-              <Button
-                className="border-2 border-b-4"
-                onClick={(e) => {
-                  setCurrentStep("username");
-                  console.log(e);
-                }}
-              >
-                Username
-              </Button>
-            </div>
-          </div>
-
-          
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              {error}
-            </div>
+        <Field id="identifier" label="Email or username">
+          {(aria) => (
+            <Input
+              {...aria}
+              aria-invalid={!!error && !identifier.trim()}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="bt22cse001@iiitn.ac.in or your_handle"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              autoFocus
+            />
           )}
+        </Field>
 
-          {currentStep === "email" && choose_email()}
-          {currentStep === "username" && choose_username()}
-          
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-600">
-              Dont have an account?{" "}
-              <button
-                onClick={() => router.push("/signup")}
-                className="text-cyan-600 hover:text-cyan-500 font-medium"
-              >
-                Sign Up
-              </button>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+        <Field id="password" label="Password">
+          {(aria) => (
+            <PasswordInput
+              {...aria}
+              aria-invalid={false}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Your password"
+              autoComplete="current-password"
+            />
+          )}
+        </Field>
+
+        <Button
+          type="submit"
+          size="lg"
+          disabled={loading}
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+          {loading ? "Signing in…" : "Sign in"}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }
