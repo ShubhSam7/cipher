@@ -41,8 +41,8 @@ export default function TopBar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+    <header className="app-topbar">
+      <div className="topbar-inner flex items-center justify-between gap-3 px-5 sm:px-7 lg:px-10">
         <div className="flex items-center gap-2">
           <button
             ref={menuButtonRef}
@@ -57,7 +57,7 @@ export default function TopBar() {
         </div>
 
         {signedIn && (
-          <form onSubmit={handleSearch} role="search" className={`mx-4 max-w-xl flex-1 sm:block ${searchOpen ? "absolute inset-x-0 top-16 m-0 border-b bg-background p-3" : "hidden"}`}>
+          <form onSubmit={handleSearch} role="search" className={`mx-4 max-w-xl flex-1 sm:block ${searchOpen ? "absolute inset-x-0 top-[68px] sm:top-[82px] m-0 border-b bg-background p-3" : "hidden"}`}>
             <label htmlFor="tag-search" className="sr-only">Search hashtags</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -67,7 +67,7 @@ export default function TopBar() {
                 placeholder="Search #hashtags"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 w-full rounded-lg border border-input bg-muted/40 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                className="topbar-search h-10 w-full pl-10 pr-4 text-xs placeholder:text-muted-foreground focus-visible:outline-none"
               />
             </div>
           </form>
@@ -80,11 +80,11 @@ export default function TopBar() {
               <Button
                 variant="outline"
                 onClick={() => openCreatePost(true)}
-                className="rounded-full border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+                className="create-post-action"
                 aria-label="Create post"
               >
                 <Plus className="h-5 w-5" aria-hidden />
-                <span className="hidden sm:inline">Create</span>
+                <span className="hidden sm:inline">New post</span>
               </Button>
 
               <DropdownMenu>

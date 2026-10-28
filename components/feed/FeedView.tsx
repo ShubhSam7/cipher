@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import PinnedPoll from "@/components/polls/PinnedPoll";
+import FeedIntro from "@/components/feed/FeedIntro";
 import PostCard from "@/components/feed/PostCard";
 import TrendingTags from "@/components/feed/TrendingTags";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +16,7 @@ import { paginationSchema } from "@/lib/validation/posts";
 
 function PostSkeleton() {
   return (
-    <div className="rounded-2xl border bg-card p-6" aria-hidden>
+    <div className="post-entry" aria-hidden>
       <div className="mb-4 flex items-center gap-3">
         <Skeleton className="h-10 w-10 rounded-full" />
         <div className="space-y-2">
@@ -118,14 +119,15 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
   }, [loadMore]);
 
   return (
-    <div className="flex gap-6">
-      <div className="mx-auto w-full max-w-2xl min-w-0 flex-1 space-y-4">
-        <h1 className="sr-only">{tag ? `Posts tagged #${tag}` : "Feed"}</h1>
+    <div className="feed-layout">
+      <div className="feed-column">
+        <FeedIntro compact={!!community || !!author} />
+        {(community || author) && <h2 className="sr-only">Posts</h2>}
 
         {!community && !author && <PinnedPoll />}
-        <div className="lg:hidden"><TrendingTags activeTag={tag} refreshKey={createdPosts[0]?.id} /></div>
+        <div className="mobile-trending"><TrendingTags activeTag={tag} refreshKey={createdPosts[0]?.id} /></div>
         {tag && (
-          <div className="flex items-center justify-between rounded-2xl border bg-card px-5 py-3">
+          <div className="mb-6 flex items-center justify-between border-b border-border pb-4 text-xs">
             <p>
               Showing posts tagged <span className="font-semibold text-primary">#{tag}</span>
             </p>
@@ -147,8 +149,9 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
           </div>
         )}
 
+        <div className="stream-heading"><p className="section-label">LATEST CONVERSATIONS</p><span className="stream-order">Newest first</span></div>
         {loading && visiblePosts.length === 0 && (
-          <div className="space-y-4" aria-busy="true" aria-label="Loading posts">
+          <div className="space-y-1" aria-busy="true" aria-label="Loading posts">
             {[0, 1, 2].map(i => <PostSkeleton key={i} />)}
           </div>
         )}
@@ -156,7 +159,7 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
         {visiblePosts.map(post => <PostCard key={post.id} post={post} />)}
 
         {!loading && visiblePosts.length === 0 && !error && (
-          <div className="rounded-2xl border border-dashed p-10 text-center">
+          <div className="feed-empty">
             <p className="mb-4 text-lg text-muted-foreground">
               {tag ? `No posts tagged #${tag} yet.` : "No posts yet. Be the first to share something."}
             </p>
@@ -180,9 +183,10 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
         )}
       </div>
 
-      <aside className="hidden w-72 shrink-0 lg:block" aria-label="Trending">
-        <div className="sticky top-22">
+      <aside className="feed-rail" aria-label="Trending">
+        <div>
           <TrendingTags activeTag={tag} refreshKey={createdPosts[0]?.id} />
+          <div className="rail-note"><span className="section-label">A LITTLE MORE CAMPUS.</span><p>Find your people.<br />Start a conversation worth having.</p><Link href="/community">Explore communities ↗</Link></div>
         </div>
       </aside>
     </div>

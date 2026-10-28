@@ -5,7 +5,7 @@ import CreatePostModal from "@/components/feed/CreatePostModal";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-shell">
       <a
         href="#main"
         className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -14,9 +14,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </a>
       <SessionSync />
       <TopBar />
-      <div className="mx-auto flex max-w-7xl">
+      <div className="app-frame">
         <Sidebar />
-        <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 focus:outline-none sm:px-6">
+        <main id="main" tabIndex={-1} className="app-content focus:outline-none">
           {children}
         </main>
       </div>

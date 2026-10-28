@@ -19,10 +19,10 @@ export default function NavList({ onNavigate }: { onNavigate?: () => void }) {
               onClick={onNavigate}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex min-h-11 items-center justify-between gap-3 rounded-xl border px-4 py-2.5 font-medium transition-colors",
+                "nav-link flex items-center justify-between gap-3 transition-colors",
                 isActive
-                  ? "border-primary/60 bg-primary/10 text-primary"
-                  : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
+                  ? "nav-link--active"
+                  : ""
               )}
             >
               <span className="flex items-center gap-3">

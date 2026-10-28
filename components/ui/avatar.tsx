@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const sizes = { sm: "h-8 w-8 text-xs", md: "h-10 w-10 text-sm" } as const;
 
-// Shows the user's avatar image, falling back to their initial on the brand gradient.
+// Pseudonymous avatar with a quiet, tonal fallback.
 export function UserAvatar({
   handle,
   src,
@@ -24,8 +24,8 @@ export function UserAvatar({
     >
       {src && <AvatarPrimitive.Image src={src} alt="" className="h-full w-full object-cover" />}
       <AvatarPrimitive.Fallback
-        delayMs={src ? 300 : 0}
-        className="flex h-full w-full items-center justify-center bg-gradient-to-br from-cyan-500 to-cyan-700 font-semibold text-white"
+        delayMs={src ? 300 : undefined}
+        className="avatar-fallback flex h-full w-full items-center justify-center"
         aria-hidden
       >
         {handle.charAt(0).toUpperCase()}

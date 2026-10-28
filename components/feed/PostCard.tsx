@@ -85,18 +85,18 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
   return (
     <article
       className={cn(
-        "relative rounded-2xl border bg-card p-5 shadow-lg transition-colors sm:p-6",
-        !isDetail && "hover:border-primary/50"
+        "post-entry",
+        isDetail && "post-entry--detail"
       )}
     >
       {!isDetail && (
-        <Link href={href} className="absolute inset-0 rounded-2xl" aria-label={`Open post by ${author}`} />
+        <Link href={href} className="absolute inset-0" aria-label={`Open post by ${author}`} />
       )}
 
       <header className="mb-4 flex items-center gap-3">
         <UserAvatar handle={post.author.user_handle} src={post.author.avatar} />
         <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-1 text-sm font-medium">
+          <p className="post-meta flex flex-wrap items-center">
             {post.community && <><Link href={`/c/${post.community.slug}`} className="relative z-10 hover:underline">c/{post.community.name}</Link><span>•</span></>}
             <Link href={`/u/${post.author.user_handle}`} className="relative z-10 hover:underline">u/{post.author.user_handle}</Link><span>•</span>
             <RelativeTime date={post.createdAt} className="text-muted-foreground" />
@@ -106,7 +106,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
 
       <p
         className={cn(
-          "mb-2 whitespace-pre-wrap break-words leading-relaxed text-foreground/90",
+          "post-body mb-2 whitespace-pre-wrap break-words",
           isLong && !expanded && "line-clamp-6"
         )}
       >
@@ -123,7 +123,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
         </button>
       )}
 
-      <div className="relative z-10 -ml-2 mt-2 flex w-fit items-center gap-1">
+      <div className="post-actions relative z-10 -ml-2 flex w-fit items-center">
         <button
           type="button"
           onClick={handleLike}
@@ -131,7 +131,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
           aria-pressed={isLiked}
           aria-label={`${isLiked ? "Unlike" : "Like"} post, ${likes} ${likes === 1 ? "like" : "likes"}`}
           className={cn(
-            "flex min-h-10 items-center gap-2 rounded-lg px-2 transition-colors hover:bg-accent disabled:opacity-60",
+            "post-action flex items-center gap-2 transition-colors disabled:opacity-60",
             isLiked ? "text-primary" : "text-muted-foreground hover:text-primary"
           )}
         >
@@ -142,7 +142,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
         <Link
           href={`${href}#comments`}
           aria-label={`${post.commentCount} ${post.commentCount === 1 ? "comment" : "comments"}`}
-          className="flex min-h-10 items-center gap-2 rounded-lg px-2 text-muted-foreground transition-colors hover:bg-accent hover:text-primary"
+          className="post-action flex items-center gap-2 transition-colors"
         >
           <MessageCircle className="h-5 w-5" aria-hidden />
           <span className="text-sm font-medium">{post.commentCount}</span>
@@ -152,7 +152,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
           type="button"
           onClick={handleShare}
           aria-label="Share post"
-          className="flex min-h-10 items-center gap-2 rounded-lg px-2 text-muted-foreground transition-colors hover:bg-accent hover:text-primary"
+          className="post-action flex items-center gap-2 transition-colors"
         >
           <Share2 className="h-5 w-5" aria-hidden />
           <span className="hidden text-sm font-medium sm:inline">Share</span>
