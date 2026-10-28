@@ -1,314 +1,83 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { middleware } from "@/lib/middleware";
+import { withAuth } from "@/lib/withAuth";
 import prisma from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { postInclude, toPostDTO, extractHashtags, postWhere } from "@/lib/posts";
+import { createPostSchema, paginationSchema, tagSchema } from "@/lib/validation/posts";
 
-const createPostSchema = z.object({
-  content: z.string().min(1).max(500),
-  mediaURL: z.array(z.string().url()).optional().default([]),
-  mediaType: z.array(z.string()).optional().default([]),
-  communityId: z.string().optional(),
-});
-
-type PostWithRelations = Prisma.PostGetPayload<{
-  include: {
-    author: {
-      select: {
-        id: true;
-        user_handle: true;
-        avatar: true;
-        bio: true;
-      };
-    };
-    community: {
-      select: {
-        id: true;
-        name: true;
-        slug: true;
-        avatar: true;
-      };
-    };
-    likes: {
-      select: {
-        userId: true;
-      };
-    };
-    comments: {
-      select: {
-        id: true;
-      };
-    };
-    hashtags: {
-      include: {
-        hashtag: {
-          select: {
-            id: true;
-            name: true;
-          };
-        };
-      };
-    };
-  };
-}>;
-
-function extractHashtags(content: string): string[] {
-  const hashtagRegex = /#(\w+)/g;
-  const matches = content.match(hashtagRegex);
-  if (!matches) return [];
-
-  // Remove duplicates and clean hashtags (remove # symbol)
-  return [...new Set(matches.map((tag) => tag.slice(1).toLowerCase()))];
-}
-
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req, session) => {
   try {
-    const auth = await middleware(req);
-
-    if (!auth.success) {
-      return NextResponse.json(
-        { error: auth.error || "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const skip = (page - 1) * limit;
+    const postId = searchParams.get("postId");
+    if (postId) {
+      const post = await prisma.post.findUnique({
+        where: { id: postId }, include: postInclude(session.userId),
+      });
+      if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      if (post.community && !await prisma.post.findFirst({ where: { id: post.id, ...postWhere(session.userId) }, select: { id: true } })) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      return NextResponse.json({ post: toPostDTO(post) });
+    }
 
-    const [posts, totalCount] = await Promise.all([
-      prisma.post.findMany({
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-        include: {
-          author: {
-            select: {
-              id: true,
-              user_handle: true,
-              avatar: true,
-              bio: true,
-            },
-          },
-          community: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              avatar: true,
-            },
-          },
-          likes: {
-            select: {
-              userId: true,
-            },
-          },
-          comments: {
-            select: {
-              id: true,
-            },
-          },
-          hashtags: {
-            include: {
-              hashtag: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
-      }),
-      prisma.post.count(),
-    ]);
-
-    const transformedPosts = posts.map((post: PostWithRelations) => ({
-      id: post.id,
-      content: post.content,
-      mediaURL: post.mediaURL,
-      mediaType: post.mediaType,
-      createdAt: post.createdAt,
-      author: post.author,
-      community: post.community,
-      likeCount: post.likes.length,
-      isLikedByUser: post.likes.some((like) => like.userId === auth.userId),
-      commentCount: post.comments.length,
-      hashtags: post.hashtags.map((ht) => ({
-        id: ht.hashtag.id,
-        name: ht.hashtag.name,
-      })),
-    }));
-
+    const { cursor, limit } = paginationSchema.parse({
+      cursor: searchParams.get("cursor") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+    });
+    const tag = searchParams.get("tag");
+    const where = postWhere(session.userId, { tag: tag ? tagSchema.parse(tag) : undefined, author: searchParams.get("author") ?? undefined, community: searchParams.get("community") ?? undefined });
+    const rows = await prisma.post.findMany({
+      where,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      take: limit + 1,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      include: postInclude(session.userId),
+    });
+    const hasMore = rows.length > limit;
+    const posts = rows.slice(0, limit);
     return NextResponse.json({
-      posts: transformedPosts,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(totalCount / limit),
-        totalPosts: totalCount,
-        hasMore: skip + posts.length < totalCount,
-      },
+      posts: posts.map(toPostDTO),
+      pagination: { hasMore, nextCursor: hasMore ? posts[posts.length - 1].id : null },
     });
-  } catch (error) {
-    console.error("Get posts error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch posts" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const auth = await middleware(req);
-
-    if (!auth.success) {
-      return NextResponse.json(
-        { error: auth.error || "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const body = await req.json();
-    const validatedData = createPostSchema.parse(body);
-
-    if (validatedData.communityId) {
-      const community = await prisma.community.findUnique({
-        where: { id: validatedData.communityId },
-      });
-
-      if (!community) {
-        return NextResponse.json(
-          { error: "Community not found" },
-          { status: 404 }
-        );
-      }
-    }
-
-    const hashtagNames = extractHashtags(validatedData.content);
-
-    // const post = await prisma.post.create({
-    //   data: {
-    //     content: validatedData.content,
-    //     mediaURL: validatedData.mediaURL,
-    //     mediaType: validatedData.mediaType,
-    //     authorId: auth.userId!,
-    //     communityId: validatedData.communityId || null,
-    //   },
-    //   include: {
-    //     author: {
-    //       select: {
-    //         id: true,
-    //         user_handle: true,
-    //         avatar: true,
-    //         bio: true,
-    //       },
-    //     },
-    //     community: {
-    //       select: {
-    //         id: true,
-    //         name: true,
-    //         slug: true,
-    //         avatar: true,
-    //       },
-    //     },
-    //   },
-    // });
-
-    const result = await prisma.$transaction(async (tx) => {
-      const post = await tx.post.create({
-        data: {
-          content: validatedData.content,
-          mediaURL: validatedData.mediaURL,
-          mediaType: validatedData.mediaType,
-          authorId: auth.userId!,
-          communityId: validatedData.communityId || null,
-        },
-        include: {
-          author: {
-            select: {
-              id: true,
-              user_handle: true,
-              avatar: true,
-              bio: true,
-            },
-          },
-          community: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              avatar: true,
-            },
-          },
-        },
-      });
-
-      const savedHashtags = [];
-      for (const tagName of hashtagNames) {
-        // Find or create hashtag (upsert = update or insert)
-        const hashtag = await tx.hashtag.upsert({
-          where: { name: tagName },
-          update: {
-            useCount: {
-              increment: 1,
-            },
-          },
-          create: {
-            name: tagName,
-            useCount: 1,
-          },
-        });
-
-        // Link hashtag to post
-        await tx.postHashtag.create({
-          data: {
-            postId: post.id,
-            hashtagId: hashtag.id,
-          },
-        });
-
-        savedHashtags.push({
-          id: hashtag.id,
-          name: hashtag.name,
-        });
-      }
-
-      return { post, hashtags: savedHashtags };
-    });
-    return NextResponse.json(
-      {
-        message: "Post created successfully",
-        post: {
-          id: result.post.id,
-          content: result.post.content,
-          mediaURL: result.post.mediaURL,
-          mediaType: result.post.mediaType,
-          createdAt: result.post.createdAt,
-          author: result.post.author,
-          community: result.post.community,
-          hashtag: result.hashtags,
-          likeCount: 0,
-          isLikedByUser: false,
-          commentCount: 0,
-          hashtags: [],
-        },
-      },
-      { status: 201 }
-    );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation failed", details: error.issues },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid query", details: error.issues }, { status: 400 });
     }
-
-    console.error("Create post error:", error);
-    return NextResponse.json(
-      { error: "Failed to create post" },
-      { status: 500 }
-    );
+    console.error("Get posts error:", error);
+    return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 });
   }
-}
+});
+
+export const POST = withAuth(async (req, session) => {
+  try {
+    const input = createPostSchema.parse(await req.json());
+    if (input.communityId && !await prisma.community.findUnique({ where: { id: input.communityId } })) {
+      return NextResponse.json({ error: "Community not found" }, { status: 404 });
+    }
+    if (input.communityId && !await prisma.communityMember.findUnique({ where: { userId_communityId: { userId: session.userId, communityId: input.communityId } } })) {
+      return NextResponse.json({ error: "Join this community before posting" }, { status: 403 });
+    }
+    const names = extractHashtags(input.content);
+    const post = await prisma.$transaction(async tx => {
+      const created = await tx.post.create({
+        data: { ...input, authorId: session.userId, communityId: input.communityId ?? null },
+        select: { id: true },
+      });
+      if (names.length > 0) {
+        await tx.hashtag.createMany({ data: names.map(name => ({ name })), skipDuplicates: true });
+        const tags = await tx.hashtag.findMany({ where: { name: { in: names } }, select: { id: true } });
+        await tx.postHashtag.createMany({
+          data: tags.map(tag => ({ postId: created.id, hashtagId: tag.id })),
+          skipDuplicates: true,
+        });
+        await tx.hashtag.updateMany({ where: { id: { in: tags.map(tag => tag.id) } }, data: { useCount: { increment: 1 } } });
+      }
+      return tx.post.findUniqueOrThrow({ where: { id: created.id }, include: postInclude(session.userId) });
+    });
+    return NextResponse.json({ message: "Post created successfully", post: toPostDTO(post) }, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError || error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Validation failed", ...(error instanceof z.ZodError ? { details: error.issues } : {}) }, { status: 400 });
+    }
+    console.error("Create post error:", error);
+    return NextResponse.json({ error: "Failed to create post" }, { status: 500 });
+  }
+});

@@ -1,60 +1,37 @@
-import { middleware } from "@/lib/middleware";
-import { NextRequest, NextResponse } from "next/server";
+import { postWhere } from "@/lib/posts";
+import { withAuth } from "@/lib/withAuth";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
-const postlikeschema = z.object({
-  postId: z.string(),
-});
-
-export async function POST(req: NextRequest) {
+import { postLikeSchema } from "@/lib/validation/posts";
+import { Prisma } from "@prisma/client";
+export const POST = withAuth(async (req, auth) => {
   try {
-    const auth = await middleware(req);
-    if (!auth.success) {
-      return NextResponse.json(
-        { error: auth.error || "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
     const body = await req.json();
-    const validatedData = postlikeschema.parse(body);
-
-    if(!auth.userId){
-        return NextResponse.json(
-            {
-                error: "userId not found",
-                status: 401,
-            },
-            { status: 401 }
-        )
+    const validatedData = postLikeSchema.parse(body);
+    if (!await prisma.post.findFirst({ where: { id: validatedData.postId, ...postWhere(auth.userId) }, select: { id: true } })) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    // Check if already liked to prevent duplicates
-    const existingLike = await prisma.postlike.findFirst({
-      where: {
-        postId: validatedData.postId,
-        userId: auth.userId
-      }
-    });
 
-    if (existingLike) {
-      return NextResponse.json({
-        success: true,
-        msg: "Post already liked",
-        alreadyLiked: true
-      });
-    }
-
-    const data = await prisma.postlike.create({
-        data: {
-            postId: validatedData.postId,
-            userId: auth.userId
+    try {
+      await prisma.postlike.upsert({
+        where: {
+          userId_postId: { userId: auth.userId, postId: validatedData.postId },
         },
-    })
+        update: {},
+        create: { userId: auth.userId, postId: validatedData.postId },
+      });
+    } catch (error) {
+      // Prisma may emulate upsert; a competing request can win the insert.
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+        throw error;
+      }
+    }
 
     return NextResponse.json({
         success: true,
-        msg: `Post ${data.postId} liked successfully`,
+        msg: `Post ${validatedData.postId} liked successfully`,
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -64,15 +41,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error("Likeing post error:", error);
+    console.error("Like post error:", error);
     return NextResponse.json(
       { error: "Failed to like the post" },
       { status: 500 }
     );
   }
-}
+});
 
-export async function GET(req: NextRequest){
+export const GET = withAuth(async (req, auth) => {
     try {
       // Get postId from query parameters
       const { searchParams } = new URL(req.url);
@@ -85,6 +62,9 @@ export async function GET(req: NextRequest){
         );
       }
 
+      if (!await prisma.post.findFirst({ where: { id: postId, ...postWhere(auth.userId) }, select: { id: true } })) {
+        return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      }
       // Count total likes for this post
       const count = await prisma.postlike.count({
         where: {
@@ -104,30 +84,13 @@ export async function GET(req: NextRequest){
         { status: 500 }
       );
     }
-}
+});
 
-export async function DELETE(req: NextRequest){
+export const DELETE = withAuth(async (req, auth) => {
   try {
-    const auth = await middleware(req);
-    if (!auth.success) {
-      return NextResponse.json(
-        { error: auth.error || "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
     const body = await req.json();
-    const validatedData = postlikeschema.parse(body);
+    const validatedData = postLikeSchema.parse(body);
 
-    if(!auth.userId){
-        return NextResponse.json(
-            {
-                error: "User not authenticated",
-                status: 401,
-            },
-            { status: 401 }
-        )
-    }
 
     // Delete the like
     const deletedLike = await prisma.postlike.deleteMany({
@@ -162,4 +125,4 @@ export async function DELETE(req: NextRequest){
       { status: 500 }
     );
   }
-}
+});

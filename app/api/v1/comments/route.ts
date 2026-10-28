@@ -1,43 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
+import { createCommentSchema, deleteCommentSchema } from "@/lib/validation/comments";
 import prisma from "@/lib/prisma";
-import { middleware } from "@/lib/middleware";
+import { postWhere } from "@/lib/posts";
+import { withAuth } from "@/lib/withAuth";
 
-const validateSchema = z.object({
-  content: z.string().min(1).max(100),
-  postId: z.string(),
-  parentId: z.string().optional(),
-});
-
-const deleteValidateSchema = z.object({
-  id: z.string(),
-});
-
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req, auth) => {
   try {
-    const auth = await middleware(req);
-    const body = await req.json();
+    const validatedData = createCommentSchema.parse(await req.json());
 
-    if (!auth.success) {
-      return NextResponse.json(
-        { error: auth.error || "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const validatedData = validateSchema.parse(body);
-
-    if (!validatedData.content) {
-      return NextResponse.json(
-        {
-          msg: "validated schema not verified",
-        },
-        { status: 401 }
-      );
-    } // check for content
-
-    const postExists = await prisma.post.findUnique({
-      where: { id: validatedData.postId },
+    const postExists = await prisma.post.findFirst({
+      where: { id: validatedData.postId, ...postWhere(auth.userId) }, select: { id: true },
     });
 
     if (!postExists) {
@@ -64,43 +38,21 @@ export async function POST(req: NextRequest) {
       } // check for post and comment to be refferenced
     }
 
-    const user = await prisma.comment.create({
+    const comment = await prisma.comment.create({
       data: {
         content: validatedData.content.trim(),
         authorId: auth.userId,
         postId: validatedData.postId,
         parentId: validatedData.parentId || null,
       },
-      include: {
-        author: {
-          select: {
-            id: true,
-            user_handle: true,
-            avatar: true,
-            bio: true,
-          },
-        },
-        parent: validatedData.parentId
-          ? {
-              select: {
-                id: true,
-                content: true,
-                author: {
-                  select: {
-                    user_handle: true,
-                  },
-                },
-              },
-            }
-          : false,
-      },
+      include: { author: { select: { id: true, user_handle: true, avatar: true } } },
     });
 
-    return NextResponse.json({
-      msg: `Comment is create by ${user.authorId} on ${user.postId} that is `,
-      content: user.content,
-    });
+    return NextResponse.json({ msg: "Comment created", comment }, { status: 201 });
   } catch (error) {
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation failed", details: error.issues },
@@ -108,37 +60,62 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error("Create post error:", error);
+    console.error("Create comment error:", error);
     return NextResponse.json(
-      { error: "Failed to create post" },
+      { error: "Failed to create comment" },
       { status: 500 }
     );
   }
-}
+});
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req, auth) => {
   try {
     const { searchParams } = new URL(req.url);
-    const body = searchParams.get("postId");
+    const postId = searchParams.get("postId");
+    const parentId = searchParams.get("parentId");
 
-    if (!body) {
+    if (!postId) {
       return NextResponse.json(
         {
-          msg: "postId is not found in the URL",
+          msg: "postId is required in the URL",
         },
         { status: 400 }
       );
     }
 
-    const user = await prisma.comment.findMany({
-      where: {
-        postId: body,
+    if (!await prisma.post.findFirst({ where: { id: postId, ...postWhere(auth.userId) }, select: { id: true } })) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+    // Build where clause based on parentId parameter
+    const whereClause: Prisma.CommentWhereInput = { postId };
+    
+    // Only filter by parentId if explicitly requested (and not "null" string)
+    if (parentId && parentId !== "null") {
+      // Fetch replies for specific comment
+      whereClause.parentId = parentId;
+    }
+    // Otherwise, fetch ALL comments for the post (both top-level and replies)
+    // The frontend will organize them into a tree structure
+
+    const comments = await prisma.comment.findMany({
+      where: whereClause,
+      include: {
+        author: {
+          select: {
+            id: true,
+            user_handle: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
       },
     });
 
     return NextResponse.json({
-      msg: "All the comments are",
-      comments: user,
+      msg: "Comments fetched successfully",
+      comments: comments,
     });
   } catch (error) {
     console.error("Get comment error:", error);
@@ -147,58 +124,33 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(req: NextRequest) {
+export const DELETE = withAuth(async (req, auth) => {
   try {
-    const auth = await middleware(req);
-    const body = await req.json();
-    console.log("authenticating");
-    const validatedData = deleteValidateSchema.parse(body);
-
-    if (!auth.success) {
-      return NextResponse.json(
-        { error: auth.error || "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    if (!validatedData.id) {
-      return NextResponse.json(
-        {
-          msg: "validated schema not verified",
-        },
-        { status: 401 }
-      );
-    }
-
-    console.log("authenticated");
-
-    const deleted = await prisma.comment.deleteMany({
-      where: {
-        id: validatedData.id,
-      },
+    const validatedData = deleteCommentSchema.parse(await req.json());
+    const comment = await prisma.comment.findUnique({
+      where: { id: validatedData.id },
     });
 
-    await prisma.comment.deleteMany({
-      where: {
-        parentId: validatedData.id || null,
-      },
-    });
-
-    console.log("prisma delete done");
-
-    if (deleted.count === 0) {
+    if (!comment) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
+    if (comment.authorId !== auth.userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
-    console.log("prisma delete checked");
+    // PostgreSQL cascades deletion through all nested replies and comment likes.
+    await prisma.comment.delete({ where: { id: comment.id } });
 
     return NextResponse.json({
       success: true,
       msg: `Comment ${validatedData.id} is deleted successfully`,
     });
   } catch (error) {
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation failed", details: error.issues },
@@ -212,4 +164,4 @@ export async function DELETE(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

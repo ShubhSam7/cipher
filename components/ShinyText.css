@@ -25,3 +25,9 @@
 .shiny-text.disabled {
   animation: none;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .shiny-text {
+    animation: none;
+  }
+}
