@@ -31,4 +31,3 @@ export function Stepper({ current }: { current: "email" | "otp" | "complete" }) 
     </ol></div>
   );
 }
-
