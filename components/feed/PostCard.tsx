@@ -25,7 +25,7 @@ function PostContent({ content }: { content: string }) {
       <Link
         key={index}
         href={`/feed?tag=${encodeURIComponent(part.slice(1).toLowerCase())}`}
-        className="relative z-10 text-primary hover:underline"
+        className="relative z-10 hashtag hover:underline"
       >
         {part}
       </Link>
@@ -39,6 +39,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
   const [likes, setLikes] = useState(post.likeCount);
   const [isLiked, setIsLiked] = useState(post.isLikedByUser);
   const [isLoading, setIsLoading] = useState(false);
+  const [pop, setPop] = useState(false);
   const [expanded, setExpanded] = useState(isDetail);
   const href = `/post/${post.id}`;
   const author = `u/${post.author.user_handle}`;
@@ -48,6 +49,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
     if (isLoading) return;
     const previous = { likes, isLiked };
     setIsLoading(true);
+    setPop(!isLiked);
     setIsLiked(!isLiked);
     setLikes(isLiked ? likes - 1 : likes + 1);
 
@@ -97,7 +99,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
         <UserAvatar handle={post.author.user_handle} src={post.author.avatar} />
         <div className="min-w-0">
           <p className="post-meta flex flex-wrap items-center">
-            {post.community && <><Link href={`/c/${post.community.slug}`} className="relative z-10 hover:underline">c/{post.community.name}</Link><span>•</span></>}
+            {post.community && <><Link href={`/c/${post.community.slug}`} data-tone="peach" className="relative z-10 chip chip--interactive">c/{post.community.name}</Link><span>•</span></>}
             <Link href={`/u/${post.author.user_handle}`} className="relative z-10 hover:underline">u/{post.author.user_handle}</Link><span>•</span>
             <RelativeTime date={post.createdAt} className="text-muted-foreground" />
           </p>
@@ -116,7 +118,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="relative z-10 mb-2 text-sm font-medium text-primary hover:underline"
+          className="relative z-10 mb-2 text-sm font-medium text-brand hover:underline"
           aria-expanded={expanded}
         >
           {expanded ? "Show less" : "Show more"}
@@ -129,10 +131,12 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
           onClick={handleLike}
           disabled={isLoading}
           aria-pressed={isLiked}
+          data-pop={pop}
+          onAnimationEnd={() => setPop(false)}
           aria-label={`${isLiked ? "Unlike" : "Like"} post, ${likes} ${likes === 1 ? "like" : "likes"}`}
           className={cn(
             "post-action flex items-center gap-2 transition-colors disabled:opacity-60",
-            isLiked ? "text-primary" : "text-muted-foreground hover:text-primary"
+            isLiked ? "text-brand" : "text-muted-foreground hover:text-brand"
           )}
         >
           <Heart className={cn("h-5 w-5", isLiked && "fill-current")} aria-hidden />

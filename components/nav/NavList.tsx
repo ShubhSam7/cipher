@@ -10,12 +10,13 @@ export default function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <ul className="space-y-1">
-      {navItems.map(({ name, path, icon: Icon }) => {
+      {navItems.map(({ name, path, icon: Icon, tone }) => {
         const isActive = pathname === path || pathname.startsWith(`${path}/`);
         return (
           <li key={path} className={path === "/settings" ? "nav-utility-start" : undefined}>
             <Link
               href={path}
+              data-tone={tone}
               onClick={onNavigate}
               aria-current={isActive ? "page" : undefined}
               aria-label={name}
@@ -26,7 +27,7 @@ export default function NavList({ onNavigate }: { onNavigate?: () => void }) {
               )}
             >
               <span className="flex items-center gap-3">
-                <Icon className="h-5 w-5" aria-hidden />
+                <span className="nav-icon"><Icon className="h-5 w-5" aria-hidden /></span>
                 <span className="nav-label">{name}</span>
               </span>
 

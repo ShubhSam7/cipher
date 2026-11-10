@@ -1,6 +1,7 @@
 "use client";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ThemeChoiceTabs } from "@/components/theme/ThemeChoiceTabs";
 import NavList from "@/components/nav/NavList";
 
 interface MobileSidebarProps {
@@ -28,7 +29,7 @@ export default function MobileSidebar({ isOpen, onOpenChange, returnFocusRef }: 
         <nav aria-label="Main" className="flex-1 overflow-y-auto p-4">
           <NavList onNavigate={() => onOpenChange(false)} />
         </nav>
-        <p className="border-t p-4 metadata">© {new Date().getFullYear()} Cipher · IIIT Nagpur</p>
+        <div className="p-4 border-t"><p className="section-label mb-2">Appearance</p><ThemeChoiceTabs /></div><p className="p-4 metadata">© {new Date().getFullYear()} Cipher · IIIT Nagpur</p>
       </SheetContent>
     </Sheet>
   );

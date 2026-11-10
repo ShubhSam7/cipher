@@ -1,3 +1,6 @@
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { StoryChips } from "./StoryChips";
+import { Doodle } from "@/components/decor/Doodles";
 import Logo from "@/components/Logo";
 import { MessageCircle, ShieldCheck } from "lucide-react";
 
@@ -11,10 +14,10 @@ interface AuthShellProps {
 export default function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
   return (
     <div className="auth-shell">
-      <aside className="auth-story">
+      <aside className="auth-story pattern-dots">
         <Logo />
         <div className="auth-story-copy">
-          <MessageCircle className="mb-6 h-8 w-8 text-primary" aria-hidden />
+          <MessageCircle className="mb-6 h-8 w-8 text-brand" aria-hidden />
           <h2>A little more campus. A little more you.</h2>
           <p>Big questions, small observations, and the conversations between classes. There’s a place for all of it here.</p>
           <div className="mt-8 flex items-start gap-3 border-t pt-6 text-sm text-muted-foreground">
@@ -22,9 +25,9 @@ export default function AuthShell({ title, subtitle, children, footer }: AuthShe
             <span>For verified IIIT Nagpur students.<br />Participate with a public pseudonym.</span>
           </div>
         </div>
-        <p className="metadata">Your campus. Your conversations.</p>
+        <StoryChips /><Doodle name="Squiggle" className="auth-doodle"/>
       </aside>
-      <main className="auth-main">
+      <main className="auth-main"><ThemeToggle className="auth-theme"/>
         <h1 className="page-title">{title}</h1>
         <p className="page-description">{subtitle}</p>
         {children}

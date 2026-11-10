@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import Logo from "@/components/Logo";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/store/authStore";
@@ -16,7 +17,7 @@ export default function HomeNavbar() {
         <Logo />
         <div className="flex items-center gap-4 sm:gap-6">
           <Link href="/about" className="text-action public-about">About Cipher</Link>
-          <Button asChild variant="outline"><Link href={signedIn ? "/feed" : "/signin"}>{signedIn ? "Open feed" : "Sign in"}</Link></Button>
+          <ThemeToggle /><Button asChild variant="outline"><Link href={signedIn ? "/feed" : "/signin"}>{signedIn ? "Open feed" : "Sign in"}</Link></Button>
         </div>
       </nav>
     </header>

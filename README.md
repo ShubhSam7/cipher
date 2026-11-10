@@ -99,6 +99,12 @@ Post lists use cursor pagination:
 `GET /api/v1/posts?limit=10&cursor=<last-id>`. Omit `cursor` for the first request,
 then use `pagination.nextCursor` while `pagination.hasMore` is true.
 
+Post and question lists accept `q` for a case-insensitive text search (100
+characters maximum). Post search checks content; question search checks titles
+and details. Text search combines with existing tag, author, community and
+pagination parameters. The header treats a single `#hashtag` as an exact tag
+search; other input searches post text. Results retain community visibility rules.
+
 ## Deployment
 
 Install development dependencies during the build stage: Prisma CLI, TypeScript,
@@ -139,7 +145,11 @@ with immutable ballots. Existing community tables are reused, and their member c
   joined communities. Members-only posts, comments, likes and trending are
   filtered by membership. Community membership is open to campus accounts.
 - `/questions` supports tagged questions, answers, upvotes, and asker-only
-  acceptance. "Unanswered" means there are no answers yet.
+  acceptance. "Unanswered" means there are no answers yet; "Answered" means an
+  answer has been accepted. Search and filters are saved in the URL.
+- `/community` supports search by name, slug or description and a Joined filter.
+  The post composer defaults to the current community when you are a member,
+  while allowing an explicit switch to the campus feed.
 - `/polls` supports admin-created single/multiple-choice polls lasting up to
   30 days. A submitted ballot cannot be changed. Results and voter totals are
   omitted from API responses until closing, including responses to admins.
@@ -151,3 +161,6 @@ with immutable ballots. Existing community tables are reused, and their member c
 question acceptance/votes and membership counts. Signed-in browser verification
 requires applying the migration and signing in yourself; the agent does not enter
 your password. Admin behavior can also be verified through the mocked API tests.
+
+See [the feature audit](docs/feature-audit.md) for remaining product gaps,
+implementation priorities and the limits of the current verification.

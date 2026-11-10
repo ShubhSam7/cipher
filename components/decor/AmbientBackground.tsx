@@ -1,0 +1,1 @@
+export function AmbientBackground({ intensity = "app" }: { intensity?: "public" | "app" }) { return <div className={`ambient ambient--${intensity}`} aria-hidden="true"><span className="ambient__blob ambient__blob--one"/><span className="ambient__blob ambient__blob--two"/><span className="ambient__blob ambient__blob--three"/></div>; }

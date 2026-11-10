@@ -1,4 +1,5 @@
 "use client";
+import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
 import { apiFetch } from "@/lib/apiFetch";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -8,30 +9,20 @@ import PinnedPoll from "@/components/polls/PinnedPoll";
 import FeedIntro from "@/components/feed/FeedIntro";
 import PostCard from "@/components/feed/PostCard";
 import TrendingTags from "@/components/feed/TrendingTags";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PostSkeleton } from "./PostSkeleton";
+import { EmptyState } from "@/components/EmptyState";
+import { StickerTile } from "@/components/StickerTile";
+import { Doodle } from "@/components/decor/Doodles";
+import { m } from "framer-motion";
+import { fadeUp } from "@/lib/motion";
 import { Button } from "@/components/ui/Button";
 import { useUiStore } from "@/lib/store/uiStore";
 import type { PostDTO, PostsResponse } from "@/lib/posts";
 import { paginationSchema } from "@/lib/validation/posts";
 
-function PostSkeleton() {
-  return (
-    <div className="post-entry" aria-hidden>
-      <div className="mb-4 flex items-center gap-3">
-        <Skeleton className="h-10 w-10 rounded-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-3 w-16" />
-        </div>
-      </div>
-      <Skeleton className="mb-2 h-4 w-full" />
-      <Skeleton className="h-4 w-2/3" />
-    </div>
-  );
-}
-
-// Keyed by tag in the page, so switching tags starts from a fresh instance.
-export default function FeedView({ tag, community, author }: { tag: string | null; community?: string; author?: string }) {
+// The page keys this by search/tag so each result set starts with fresh pagination.
+export default function FeedView({ tag, community, author, query = "" }: { tag: string | null; community?: string; author?: string; query?: string }) {
+  const reduce = usePrefersReducedMotion();
   const [posts, setPosts] = useState<PostDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,13 +40,14 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
     const controller = new AbortController();
     activeRequest.current = controller;
     const input = paginationSchema.parse({ cursor, limit: 10 });
-    const query = new URLSearchParams({ limit: String(input.limit) });
-    if (input.cursor) query.set("cursor", input.cursor);
-    if (tag) query.set("tag", tag);
-    if (community) query.set("community", community);
-    if (author) query.set("author", author);
+    const params = new URLSearchParams({ limit: String(input.limit) });
+    if (input.cursor) params.set("cursor", input.cursor);
+    if (tag) params.set("tag", tag);
+    if (community) params.set("community", community);
+    if (author) params.set("author", author);
+    if (query) params.set("q", query);
 
-    return apiFetch(`/api/v1/posts?${query}`, { credentials: "include", signal: controller.signal })
+    return apiFetch(`/api/v1/posts?${params}`, { credentials: "include", signal: controller.signal })
       .then(response => {
         if (!response.ok) throw new Error("Couldn't load posts. Check your connection and try again.");
         return response.json() as Promise<PostsResponse>;
@@ -80,7 +72,7 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
           setLoading(false);
         }
       });
-  }, [tag, community, author]);
+  }, [tag, community, author, query]);
 
   // `loading` starts true, so only later, user-triggered fetches need to set it.
   const refetch = useCallback((cursor?: string) => {
@@ -97,11 +89,11 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
   const visiblePosts = useMemo(() => {
     const loaded = new Set(posts.map(post => post.id));
     const extra = createdPosts.filter(
-      post => (!community || post.community?.slug === community) && (!author || post.author.user_handle === author) && !loaded.has(post.id) && (!tag || post.hashtags.some(hashtag => hashtag.name === tag))
+      post => (!community || post.community?.slug === community) && (!author || post.author.user_handle === author) && !loaded.has(post.id) && (!tag || post.hashtags.some(hashtag => hashtag.name === tag)) && (!query || post.content.toLowerCase().includes(query.toLowerCase()))
     );
     if (extra.length === 0) return posts;
     return [...extra, ...posts].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [posts, createdPosts, tag, community, author]);
+  }, [posts, createdPosts, tag, community, author, query]);
 
   const loadMore = useCallback(() => {
     if (hasMore && !loading && !error && nextCursor) refetch(nextCursor);
@@ -124,12 +116,12 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
         <FeedIntro compact={!!community || !!author} />
         {(community || author) && <h2 className="sr-only">Posts</h2>}
 
-        {!community && !author && <PinnedPoll />}
+        {!community && !author && !query && !tag && <PinnedPoll />}
         <div className="mobile-trending"><TrendingTags activeTag={tag} refreshKey={createdPosts[0]?.id} /></div>
-        {tag && (
-          <div className="mb-6 flex items-center justify-between border-b border-border pb-4 text-xs">
+        {(tag || query) && (
+          <div className="search-summary mb-6" role="status">
             <p>
-              Showing posts tagged <span className="font-semibold text-primary">#{tag}</span>
+              {query ? <>Posts matching <strong>“{query}”</strong>{tag && <> in <span className="text-brand">#{tag}</span></>}</> : <>Showing posts tagged <span className="font-semibold text-brand">#{tag}</span></>}
             </p>
             <Link
               href="/feed"
@@ -139,6 +131,7 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
             </Link>
           </div>
         )}
+        {query && <p className="metadata mb-4"><Link className="text-action" href={`/questions?${new URLSearchParams({ q: query })}`}>Search questions for “{query}” <ArrowUpRight size={16} aria-hidden /></Link></p>}
 
         {error && (
           <div role="alert" className="flex items-center justify-between gap-4 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-destructive">
@@ -149,44 +142,37 @@ export default function FeedView({ tag, community, author }: { tag: string | nul
           </div>
         )}
 
-        <div className="stream-heading"><p className="section-label">Latest conversations</p><span className="stream-order">Newest first</span></div>
+        <div className="stream-heading"><p className="section-label">{query ? "Search results" : "Latest conversations"}</p><span className="stream-order">Newest first</span></div>
         {loading && visiblePosts.length === 0 && (
           <div className="space-y-1" aria-busy="true" aria-label="Loading posts">
             {[0, 1, 2].map(i => <PostSkeleton key={i} />)}
           </div>
         )}
 
-        {visiblePosts.map(post => <PostCard key={post.id} post={post} />)}
+        {visiblePosts.map((post, index) => <m.div key={post.id} initial={reduce || index >= 10 ? false : "hidden"} animate="show" variants={fadeUp} transition={{delay:index < 10 ? index * .03 : 0}}><PostCard post={post} /></m.div>)}
 
         {!loading && visiblePosts.length === 0 && !error && (
-          <div className="feed-empty">
-            <p className="mb-4 text-lg text-muted-foreground">
-              {tag ? `No posts tagged #${tag} yet.` : "No posts yet. Be the first to share something."}
-            </p>
-            <Button onClick={() => openCreatePost(true)} >
-              Create a post
-            </Button>
-          </div>
+          <EmptyState title={query ? "No matching posts." : tag ? `No posts tagged #${tag} yet.` : author ? "Nothing posted yet." : "Nothing here yet."} body={query ? "Try a different phrase or search for a #hashtag." : "A conversation starts with a thought."} action={query ? <Button asChild variant="outline"><Link href="/feed">Back to feed</Link></Button> : <Button onClick={() => openCreatePost(true)}>Create a post</Button>}/>
         )}
 
         <div ref={sentinel} />
         {hasMore && visiblePosts.length > 0 && (
           <div className="flex justify-center pt-2">
             {/* Fallback for when the observer doesn't fire (e.g. very tall viewports). */}
-            <Button variant="outline" onClick={loadMore} disabled={loading} aria-live="polite">
+            <Button variant="outline" onClick={loadMore} disabled={loading || !!error} aria-live="polite">
               {loading ? "Loading…" : "Load more"}
             </Button>
           </div>
         )}
         {!hasMore && visiblePosts.length > 0 && (
-          <p className="py-6 text-center text-sm text-muted-foreground">You&apos;re all caught up.</p>
+          <div className="feed-end"><Doodle name="Sparkle" className="doodle--keep"/><span>{query || tag ? "You’ve reached the end of these results." : "You’re all caught up."}</span><button className="text-action" onClick={() => window.scrollTo({top:0,behavior:reduce ? "instant" : "smooth"})}>Back to top</button></div>
         )}
       </div>
 
       <aside className="feed-rail" aria-label="Trending">
         <div>
           <TrendingTags activeTag={tag} refreshKey={createdPosts[0]?.id} />
-          <div className="rail-note"><span className="section-label">A little more campus.</span><p>Find your people.<br />Start a conversation worth having.</p><Link href="/community" className="text-action">Explore communities <ArrowUpRight className="h-4 w-4" aria-hidden /></Link></div>
+          <div className="rail-note"><StickerTile tone="peach" compact><span className="section-label">A little more campus.</span><p>Find your people.<br />Start a conversation worth having.</p><Link href="/community" className="text-action">Explore communities <ArrowUpRight className="h-4 w-4" aria-hidden /></Link></StickerTile></div>
         </div>
       </aside>
     </div>

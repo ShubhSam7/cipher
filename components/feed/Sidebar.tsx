@@ -1,3 +1,4 @@
+import { StickerTile } from "@/components/StickerTile";
 import NavList from "@/components/nav/NavList";
 
 export default function Sidebar() {
@@ -7,7 +8,7 @@ export default function Sidebar() {
         <p className="section-label sidebar-label">YOUR CAMPUS</p>
         <NavList />
       </nav>
-      <div className="sidebar-note"><strong>A space to be yourself.</strong><p>Pseudonymous by design.<br />Exclusively IIIT Nagpur.</p><p>© {new Date().getFullYear()} CIPHER</p></div>
+      <div className="sidebar-note"><StickerTile tone="sun" compact><strong>A space to be yourself.</strong><p>Pseudonymous by design.<br />Exclusively IIIT Nagpur.</p><p>© {new Date().getFullYear()} CIPHER</p></StickerTile></div>
     </aside>
   );
 }

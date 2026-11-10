@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import Logo from "@/components/Logo";
 import { Search, Plus, Menu, LogOut, Settings, User } from "lucide-react";
+import { feedSearchHref } from "@/lib/search";
+import { MAX_SEARCH_LENGTH } from "@/lib/validation/search";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useUiStore } from "@/lib/store/uiStore";
 import { useHydrated } from "@/lib/hooks/useHydrated";
@@ -33,12 +36,11 @@ export default function TopBar() {
     if (searchOpen) searchInputRef.current?.focus();
   }, [searchOpen]);
 
-  // Search is hashtag-only until full-text search exists.
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const tag = searchQuery.trim().replace(/^#/, "").toLowerCase();
     setSearchOpen(false);
-    if (tag) router.push(`/feed?tag=${encodeURIComponent(tag)}`);
+    router.push(feedSearchHref(searchQuery));
+    searchInputRef.current?.blur();
   };
 
   const handleLogout = async () => {
@@ -76,18 +78,20 @@ export default function TopBar() {
               }
             }}
           >
-            <label htmlFor="tag-search" className="sr-only">Search hashtags</label>
+            <label htmlFor="tag-search" className="sr-only">Search posts or #hashtags</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-brand" aria-hidden />
               <input
                 ref={searchInputRef}
                 id="tag-search"
                 type="search"
-                placeholder="Search #hashtags"
+                placeholder="Search posts or #hashtags"
                 value={searchQuery}
+                maxLength={MAX_SEARCH_LENGTH}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="topbar-search h-10 w-full pl-10 pr-4 text-sm placeholder:text-muted-foreground"
+                className="topbar-search h-11 w-full pl-10 pr-14 text-sm placeholder:text-muted-foreground"
               />
+              <button type="submit" aria-label="Search posts" className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-full text-brand hover:bg-accent"><Search size={18} aria-hidden /></button>
             </div>
           </form>
         )}
@@ -95,7 +99,7 @@ export default function TopBar() {
         <div className="flex items-center gap-2">
           {signedIn ? (
             <>
-              <Button ref={searchButtonRef} variant="ghost" size="icon" className="sm:hidden" onClick={() => setSearchOpen(value => !value)} aria-label="Search hashtags" aria-expanded={searchOpen} aria-controls="tag-search"><Search className="h-5 w-5" /></Button>
+              <Button ref={searchButtonRef} variant="ghost" size="icon" className="sm:hidden" onClick={() => setSearchOpen(value => !value)} aria-label="Search posts or hashtags" aria-expanded={searchOpen} aria-controls="tag-search"><Search className="h-5 w-5" /></Button>
               <Button
                 onClick={() => openCreatePost(true)}
                 className="create-post-action"
@@ -105,7 +109,7 @@ export default function TopBar() {
                 <span className="hidden sm:inline">New post</span>
               </Button>
 
-              <DropdownMenu>
+              <ThemeToggle className="hidden sm:inline-flex" /><DropdownMenu>
                 <DropdownMenuTrigger
                   className="flex h-11 w-11 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   aria-label="Account menu"
@@ -122,6 +126,7 @@ export default function TopBar() {
                   <DropdownMenuItem onSelect={() => router.push("/settings")}>
                     <Settings className="h-4 w-4" aria-hidden /> Settings
                   </DropdownMenuItem>
+                  <DropdownMenuItem className="sm:hidden" onSelect={() => router.push("/settings")}>Appearance</DropdownMenuItem>
                   <DropdownMenuItem destructive onSelect={handleLogout}>
                     <LogOut className="h-4 w-4" aria-hidden /> Log out
                   </DropdownMenuItem>
@@ -130,9 +135,9 @@ export default function TopBar() {
             </>
           ) : (
             hydrated && (
-              <Button asChild size="sm">
+              <><ThemeToggle /><Button asChild size="sm">
                 <Link href="/signin">Sign in</Link>
-              </Button>
+              </Button></>
             )
           )}
         </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { m } from "framer-motion";
+import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
 import Link from "next/link";
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
@@ -25,6 +27,7 @@ interface CommentCardProps {
   onReply?: (comment: CommentData) => void;
   onDelete: (comment: CommentData) => void;
   isReply?: boolean;
+  newIds?: ReadonlySet<string>;
 }
 
 export default function CommentCard({
@@ -35,19 +38,21 @@ export default function CommentCard({
   onReply,
   onDelete,
   isReply = false,
+  newIds,
 }: CommentCardProps) {
+  const reduce = usePrefersReducedMotion();
   const [showAllReplies, setShowAllReplies] = useState(false);
   const visibleReplies = showAllReplies ? replies : replies.slice(0, VISIBLE_REPLIES);
   const hiddenCount = replies.length - visibleReplies.length;
   const isOwn = currentUserId === comment.author.id;
 
   return (
-    <li className={cn(isReply ? "mt-3" : "mt-4")}>
+    <m.li initial={!reduce && newIds?.has(comment.id) ? {opacity:0,y:8} : false} animate={{opacity:1,y:0}} transition={{duration:.16}} className={cn(isReply ? "mt-3" : "mt-4")}>
       <article className="comment-entry" aria-label={`Comment by ${comment.author.user_handle}`}>
         <header className="mb-2 flex items-center gap-3">
           <UserAvatar handle={comment.author.user_handle} src={comment.author.avatar} size="sm" />
           <div className="min-w-0 flex-1">
-            <p className="break-words text-sm font-semibold"><Link href={`/u/${comment.author.user_handle}`} className="hover:underline">u/{comment.author.user_handle}</Link> {postAuthorId === comment.author.id && <span className="status-badge">Original poster</span>}</p>
+            <p className="break-words text-sm font-semibold"><Link href={`/u/${comment.author.user_handle}`} className="hover:underline">u/{comment.author.user_handle}</Link> {postAuthorId === comment.author.id && <span className="status-badge status-badge--op" data-tone="sky"><span aria-hidden>OP</span><span className="sr-only">Original poster</span></span>}</p>
             <RelativeTime date={comment.createdAt} className="metadata" />
           </div>
         </header>
@@ -62,7 +67,7 @@ export default function CommentCard({
             <button
               type="button"
               onClick={() => onReply(comment)}
-              className="min-h-11 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-primary"
+              className="min-h-11 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-brand"
             >
               Reply
             </button>
@@ -89,6 +94,7 @@ export default function CommentCard({
               currentUserId={currentUserId}
               postAuthorId={postAuthorId}
               onDelete={onDelete}
+              newIds={newIds}
               isReply
             />
           ))}
@@ -97,7 +103,7 @@ export default function CommentCard({
               <button
                 type="button"
                 onClick={() => setShowAllReplies(true)}
-                className="min-h-11 rounded-lg px-2 text-sm font-medium text-primary hover:bg-accent"
+                className="min-h-11 rounded-lg px-2 text-sm font-medium text-brand hover:bg-accent"
               >
                 Show {hiddenCount} more {hiddenCount === 1 ? "reply" : "replies"}
               </button>
@@ -105,6 +111,6 @@ export default function CommentCard({
           )}
         </ul>
       )}
-    </li>
+    </m.li>
   );
 }

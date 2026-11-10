@@ -10,9 +10,10 @@ import { useAuthStore } from "@/lib/store/authStore";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
+import { UserAvatar } from "@/components/ui/avatar";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import CommentCard, { type CommentData } from "./CommentCard";
 
 interface ApiError {
@@ -26,7 +27,10 @@ function errorMessage(data: ApiError, fallback: string) {
 
 // Render with key={postId} so a different post starts from fresh state.
 export default function CommentSection({ postId, postAuthorId }: { postId: string; postAuthorId?: string }) {
+  const hydrated = useHydrated();
+  const user = useAuthStore(state => state.user);
   const currentUserId = useAuthStore((state) => state.user?.id);
+  const [newIds, setNewIds] = useState<Set<string>>(() => new Set());
   const [comments, setComments] = useState<CommentData[]>([]);
   const [newComment, setNewComment] = useState("");
   const [replyTo, setReplyTo] = useState<CommentData | null>(null);
@@ -97,6 +101,7 @@ export default function CommentSection({ postId, postAuthorId }: { postId: strin
       const data: ApiError & { comment?: CommentData } = await response.json();
       if (!response.ok || !data.comment) throw new Error(errorMessage(data, "Failed to post comment"));
 
+      setNewIds(previous => new Set(previous).add(data.comment!.id));
       setComments((previous) => [...previous, data.comment!]);
       setNewComment("");
       setReplyTo(null);
@@ -139,9 +144,10 @@ export default function CommentSection({ postId, postAuthorId }: { postId: strin
       </h2>
 
       <form onSubmit={handleSubmitComment} className="mb-6 rounded-2xl border bg-card p-4 focus-within:ring-2 focus-within:ring-ring">
+        {hydrated && user && <div className="mb-3"><UserAvatar handle={user.user_handle} size="sm"/></div>}
         {replyTo && (
-          <div className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-primary/10 px-3 py-1.5 text-sm">
-            <span className="truncate text-primary">Replying to u/{replyTo.author.user_handle}</span>
+          <div data-tone="sky" className="chip mb-3 flex w-full items-center justify-between">
+            <span className="truncate">Replying to u/{replyTo.author.user_handle}</span>
             <button
               type="button"
               onClick={() => setReplyTo(null)}
@@ -189,7 +195,7 @@ export default function CommentSection({ postId, postAuthorId }: { postId: strin
       )}
       {loadError && <p role="alert" className="text-destructive">{loadError}</p>}
       {!loading && !loadError && comments.length === 0 && (
-        <p className="py-8 text-center text-muted-foreground">No comments yet. Start the conversation.</p>
+        <EmptyState tone="sky" title="No comments yet. Start the conversation."/>
       )}
 
       <ul>
@@ -197,6 +203,7 @@ export default function CommentSection({ postId, postAuthorId }: { postId: strin
           <CommentCard
             key={comment.id}
             comment={comment}
+            newIds={newIds}
             replies={repliesByParent.get(comment.id)}
             currentUserId={currentUserId}
             postAuthorId={postAuthorId}
@@ -206,27 +213,7 @@ export default function CommentSection({ postId, postAuthorId }: { postId: strin
         ))}
       </ul>
 
-      <Dialog open={!!pendingDelete} onOpenChange={(open) => !open && !deleting && setPendingDelete(null)}>
-        <DialogContent hideClose className="max-w-sm">
-          <DialogHeader className="pb-2">
-            <DialogTitle>Delete comment?</DialogTitle>
-            <DialogDescription>
-              {pendingDelete && repliesByParent.has(pendingDelete.id)
-                ? "This also deletes all replies to it. This can't be undone."
-                : "This can't be undone."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="pt-4">
-            <Button variant="ghost" onClick={() => setPendingDelete(null)} disabled={deleting}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
-              {deleting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog open={!!pendingDelete} onOpenChange={open => { if (!open) setPendingDelete(null); }} busy={deleting} onConfirm={confirmDelete} title="Delete comment?" description={pendingDelete && repliesByParent.has(pendingDelete.id) ? "This also deletes all replies to it. This can't be undone." : "This can't be undone."}/>
     </section>
   );
 }

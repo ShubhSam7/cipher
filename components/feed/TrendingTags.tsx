@@ -27,8 +27,8 @@ export function TrendingList({ tags, activeTag, error, onRetry }: {
           {tags.map((tag, index) => (
             <li key={tag.id}>
               <Link href={`/feed?tag=${encodeURIComponent(tag.name)}`} aria-current={activeTag === tag.name ? "page" : undefined}
-                className={cn("trend-link", activeTag === tag.name ? "text-primary" : "text-foreground/90")}>
-                <span className="trend-rank" aria-hidden>{String(index + 1).padStart(2, "0")}</span>
+                className={cn("trend-link", activeTag === tag.name ? "text-brand" : "text-foreground/90")}>
+                <span className="trend-rank" data-tone={["lime","sky","peach","lavender","sun"][index % 5]} aria-hidden>{String(index + 1).padStart(2, "0")}</span>
                 <span className="trend-name">#{tag.name}</span>
                 <span className="trend-count">{tag.useCount} {tag.useCount === 1 ? "post" : "posts"}</span>
               </Link>

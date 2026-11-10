@@ -5,12 +5,21 @@ import { questionInclude, questionDTO } from "@/lib/questions";
 import { questionSchema } from "@/lib/validation/questions";
 import { paginationSchema, tagSchema } from "@/lib/validation/posts";
 import { extractHashtags } from "@/lib/posts";
+import { questionFilterSchema, searchSchema } from "@/lib/validation/search";
+import { escapeSearchPattern } from "@/lib/search";
 export const GET = withAuth(async req => {
   const params = new URL(req.url).searchParams;
   const { cursor, limit } = paginationSchema.parse({ cursor: params.get("cursor") ?? undefined, limit: params.get("limit") ?? undefined });
   const tag = params.get("tag") ? tagSchema.parse(params.get("tag")) : undefined;
+  const query = escapeSearchPattern(searchSchema.parse(params.get("q") ?? ""));
+  const filter = questionFilterSchema.parse(params.get("filter") ?? "all");
   const rows = await prisma.question.findMany({
-    where: { ...(params.get("filter") === "unanswered" ? { answers: { none: {} } } : {}), ...(tag ? { hashtags: { some: { hashtag: { name: tag } } } } : {}) },
+    where: {
+      ...(filter === "unanswered" ? { answers: { none: {} } } : {}),
+      ...(filter === "answered" ? { acceptedAnswerId: { not: null } } : {}),
+      ...(tag ? { hashtags: { some: { hashtag: { name: tag } } } } : {}),
+      ...(query ? { OR: [{ title: { contains: query, mode: "insensitive" } }, { body: { contains: query, mode: "insensitive" } }] } : {}),
+    },
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}), take: limit + 1, orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: questionInclude,
   });
   const questions = rows.slice(0, limit);

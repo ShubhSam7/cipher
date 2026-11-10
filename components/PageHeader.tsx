@@ -1,0 +1,3 @@
+import type { Tone } from "@/lib/avatar";
+import { Doodle, type DoodleName } from "./decor/Doodles";
+export function PageHeader({ eyebrow, title, description, tone = "lime", icon, doodle, action }: { eyebrow?: string; title: string; description?: string; tone?: Tone; icon?: React.ReactNode; doodle?: DoodleName; action?: React.ReactNode }) { return <header className="page-header" data-tone={tone}><div>{eyebrow && <p className="chip mb-3">{eyebrow}</p>}<div className="flex items-center gap-3">{icon && <span className="icon-tile">{icon}</span>}<h1 className="page-title">{title}</h1></div>{description && <p className="page-description">{description}</p>}</div>{doodle && <Doodle name={doodle}/>}{action}</header>; }

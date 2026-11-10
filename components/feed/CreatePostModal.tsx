@@ -24,14 +24,18 @@ export default function CreatePostModal() {
   const addCreatedPost = useUiStore((state) => state.addCreatedPost);
   const router = useRouter();
   const pathname = usePathname();
-  const { data: communityData } = useApi<{ communities: CommunityDTO[] }>(isOpen ? "/api/v1/communities" : null);
-  const [communityId, setCommunityId] = useState("");
+  const { data: communityData, error: communityError, loading: communitiesLoading, refresh: refreshCommunities } = useApi<{ communities: CommunityDTO[] }>(isOpen ? "/api/v1/communities" : null);
+  const [destination, setDestination] = useState<{ pathname: string; id: string } | null>(null);
+  const currentSlug = pathname.startsWith("/c/") ? decodeURIComponent(pathname.slice(3)) : null;
+  const suggested = communityData?.communities.find(community => community.slug === currentSlug && community.isMember);
+  const communityId = destination?.pathname === pathname ? destination.id : suggested?.id ?? "";
+  const destinationPending = !!currentSlug && (communitiesLoading || !!communityError || !communityData);
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
-    if (!content.trim() || isSubmitting) return;
+    if (!content.trim() || isSubmitting || destinationPending) return;
     setIsSubmitting(true);
     setError(null);
 
@@ -46,6 +50,7 @@ export default function CreatePostModal() {
 
       addCreatedPost(data.post);
       setContent("");
+      setDestination(null);
       setOpen(false);
       const postId = data.post.id;
       toast.success("Posted", pathname === "/feed" ? undefined : {
@@ -74,12 +79,13 @@ export default function CreatePostModal() {
 
           <div className="space-y-3 p-6">
             <label htmlFor="post-community" className="block text-sm font-medium">Post to</label>
-            <select id="post-community" className="control-select" value={communityId} onChange={event => setCommunityId(event.target.value)}><option value="">Campus feed</option>{communityData?.communities.filter(community => community.isMember).map(community => <option key={community.id} value={community.id}>c/{community.name}</option>)}</select>
+            <select id="post-community" className="control-select" disabled={isSubmitting || communitiesLoading || !!communityError} value={communityId} onChange={event => setDestination({ pathname, id: event.target.value })}><option value="">{destinationPending ? "Loading communities…" : "Campus feed"}</option>{communityData?.communities.filter(community => community.isMember).map(community => <option key={community.id} value={community.id}>c/{community.name}</option>)}</select>
+            {communityError && <p role="alert" className="text-sm text-destructive">Couldn’t load communities. <button type="button" className="underline" onClick={refreshCommunities}>Try again</button></p>}
+            {communityData?.communities.find(community => community.id === communityId)?.isPublic === false && <p className="metadata">Only members of this community can see this post.</p>}
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <label htmlFor="post-content" className="sr-only">Post content</label>
             <Textarea
               id="post-content"
-              autoFocus
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={(e) => {
@@ -91,6 +97,7 @@ export default function CreatePostModal() {
               placeholder="What's on your mind?"
               className="h-48"
               maxLength={MAX_CONTENT_LENGTH}
+              disabled={isSubmitting}
               aria-describedby="post-content-count"
             />
             <div className="flex items-center justify-between text-sm">
@@ -110,7 +117,7 @@ export default function CreatePostModal() {
             </Button>
             <Button
               type="submit"
-              disabled={!content.trim() || isSubmitting}
+              disabled={!content.trim() || isSubmitting || destinationPending}
 
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}

@@ -16,7 +16,7 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-[var(--overlay)]", className)}
+    className={cn("dialog-overlay fixed inset-0 z-50 bg-[var(--overlay)]", className)}
     {...props}
   />
 ));
@@ -24,14 +24,19 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean }
->(({ className, children, hideClose, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean; center?: boolean }
+>(({ className, children, hideClose, center, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) => {
+  const opener = React.useRef<HTMLElement | null>(null);
+  return (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      data-center={center}
+      onOpenAutoFocus={event => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; onOpenAutoFocus?.(event); }}
+      onCloseAutoFocus={event => { onCloseAutoFocus?.(event); if (!event.defaultPrevented && opener.current?.isConnected) { event.preventDefault(); opener.current.focus(); } }}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-popover text-popover-foreground shadow-[var(--shadow-elevated)] focus:outline-none",
+        "dialog-content fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-2xl border bg-popover text-popover-foreground shadow-[var(--shadow-elevated)] focus:outline-none",
         className
       )}
       {...props}
@@ -45,7 +50,7 @@ const DialogContent = React.forwardRef<
       )}
     </DialogPrimitive.Content>
   </DialogPortal>
-));
+); });
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

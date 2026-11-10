@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/withAuth";
 import prisma from "@/lib/prisma";
 import { postInclude, toPostDTO, extractHashtags, postWhere } from "@/lib/posts";
 import { createPostSchema, paginationSchema, tagSchema } from "@/lib/validation/posts";
+import { searchSchema } from "@/lib/validation/search";
 
 export const GET = withAuth(async (req, session) => {
   try {
@@ -23,7 +24,8 @@ export const GET = withAuth(async (req, session) => {
       limit: searchParams.get("limit") ?? undefined,
     });
     const tag = searchParams.get("tag");
-    const where = postWhere(session.userId, { tag: tag ? tagSchema.parse(tag) : undefined, author: searchParams.get("author") ?? undefined, community: searchParams.get("community") ?? undefined });
+    const query = searchSchema.parse(searchParams.get("q") ?? "");
+    const where = postWhere(session.userId, { tag: tag ? tagSchema.parse(tag) : undefined, author: searchParams.get("author") ?? undefined, community: searchParams.get("community") ?? undefined, query });
     const rows = await prisma.post.findMany({
       where,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

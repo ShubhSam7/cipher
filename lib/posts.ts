@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { escapeSearchPattern } from "@/lib/search";
 
 export function postInclude(userId: string) {
   return {
@@ -35,13 +36,14 @@ export function extractHashtags(content: string): string[] {
   return [...new Set((content.match(/#(\w+)/g) ?? []).map(tag => tag.slice(1).toLowerCase()))];
 }
 
-export function postWhere(userId: string, filters: { tag?: string; author?: string; community?: string } = {}): Prisma.PostWhereInput {
+export function postWhere(userId: string, filters: { tag?: string; author?: string; community?: string; query?: string } = {}): Prisma.PostWhereInput {
   return {
     AND: [
       { OR: [{ communityId: null }, { community: { isPublic: true } }, { community: { members: { some: { userId } } } }] },
       ...(filters.tag ? [{ hashtags: { some: { hashtag: { name: filters.tag } } } }] : []),
       ...(filters.author ? [{ author: { user_handle: filters.author } }] : []),
       ...(filters.community ? [{ community: { slug: filters.community } }] : []),
+      ...(filters.query ? [{ content: { contains: escapeSearchPattern(filters.query), mode: "insensitive" as const } }] : []),
     ],
   };
 }

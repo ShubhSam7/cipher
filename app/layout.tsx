@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { MotionProvider } from "@/components/motion/MotionProvider";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -22,8 +24,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#111310",
-  colorScheme: "dark",
+  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f6f2e8" }, { media: "(prefers-color-scheme: dark)", color: "#0f1513" }],
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({
@@ -32,10 +34,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className={`${manrope.variable} font-sans antialiased`}>
-        {children}
-        <Toaster />
+        <ThemeProvider><MotionProvider>{children}<Toaster /></MotionProvider></ThemeProvider>
       </body>
     </html>
   );

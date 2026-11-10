@@ -1,20 +1,28 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiJSON } from "@/lib/apiFetch";
+
 export function useApi<T>(url: string | null) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
-  const refresh = useCallback(() => { setLoading(true); setRevision(value => value + 1); }, []);
+  const request = useMemo(() => ({ url, revision }), [url, revision]);
+  const [result, setResult] = useState<{ request: typeof request; data: T | null; error: string | null } | null>(null);
+  const refresh = useCallback(() => setRevision(value => value + 1), []);
+
   useEffect(() => {
-    if (!url) return;
+    if (!request.url) return;
     const controller = new AbortController();
-    apiJSON<T>(url, { signal: controller.signal }).then(value => {
-      if (!controller.signal.aborted) { setData(value); setError(null); }
-    }).catch(error => { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Request failed"); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    apiJSON<T>(request.url, { signal: controller.signal }).then(data => {
+      if (!controller.signal.aborted) setResult({ request, data, error: null });
+    }).catch(error => {
+      if (!controller.signal.aborted) setResult(previous => ({
+        request, data: previous?.request.url === request.url ? previous.data : null,
+        error: error instanceof Error ? error.message : "Request failed",
+      }));
+    });
     return () => controller.abort();
-  }, [url, revision]);
-  return { data, error, loading, refresh };
+  }, [request]);
+
+  const current = result?.request.url === url ? result : null;
+  const loading = !!url && current?.request !== request;
+  return { data: current?.data ?? null, error: loading ? null : current?.error ?? null, loading, refresh };
 }

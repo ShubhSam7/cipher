@@ -15,16 +15,13 @@ import { Input } from "@/components/ui/input";
 import AuthShell from "@/components/auth/AuthShell";
 import Field from "@/components/auth/Field";
 import PasswordInput from "@/components/auth/PasswordInput";
+import { Stepper } from "@/components/auth/Stepper";
+import { StepTransition } from "@/components/motion/Presence";
 import OtpInput from "@/components/auth/OtpInput";
 
 type SignupStep = "email" | "otp" | "complete";
 type FieldName = "email" | "otp" | "user_handle" | "password" | "confirmPassword";
 
-const steps: { id: SignupStep; label: string }[] = [
-  { id: "email", label: "Email" },
-  { id: "otp", label: "Verify" },
-  { id: "complete", label: "Create" },
-];
 const RESEND_SECONDS = 60;
 const OTP_TTL_SECONDS = 10 * 60;
 
@@ -49,39 +46,12 @@ function formatSeconds(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-function Stepper({ current }: { current: SignupStep }) {
-  const currentIndex = steps.findIndex((step) => step.id === current);
-  return (
-    <ol className="mb-6 flex items-center justify-center gap-2" aria-label="Signup progress">
-      {steps.map((step, index) => {
-        const done = index < currentIndex;
-        return (
-          <li key={step.id} className="flex items-center gap-2" aria-current={index === currentIndex ? "step" : undefined}>
-            <span
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold",
-                index === currentIndex && "bg-primary text-primary-foreground",
-                done && "bg-primary/20 text-primary",
-                index > currentIndex && "bg-muted text-muted-foreground"
-              )}
-            >
-              {done ? <Check className="h-4 w-4" aria-label="Done" /> : index + 1}
-            </span>
-            <span className={cn("text-sm", index === currentIndex ? "text-foreground" : "text-muted-foreground")}>
-              {step.label}
-            </span>
-            {index < steps.length - 1 && <span className="mx-1 h-px w-6 bg-border" aria-hidden />}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
 export default function SignupPage() {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
-  const [step, setStep] = useState<SignupStep>("email");
+  const [step, setCurrentStep] = useState<SignupStep>("email");
+  const [direction, setDirection] = useState(1);
+  function setStep(next: SignupStep) { const order = { email: 0, otp: 1, complete: 2 }; setDirection(order[next] > order[step] ? 1 : -1); setCurrentStep(next); }
   const [form, setForm] = useState({ email: "", otp: "", user_handle: "", password: "", confirmPassword: "" });
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
   const [serverErrors, setServerErrors] = useState<Partial<Record<FieldName, string>>>({});
@@ -222,7 +192,7 @@ export default function SignupPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/signin" className="font-medium text-primary hover:underline">
+          <Link href="/signin" className="font-medium text-brand hover:underline">
             Sign in
           </Link>
         </>
@@ -237,6 +207,7 @@ export default function SignupPage() {
           </div>
         )}
 
+        <StepTransition direction={direction} step={{email:0,otp:1,complete:2}[step]}><div className="space-y-5">
         {step === "email" && (
           <Field id="email" label="College email" error={fieldError("email")}>
             {(aria) => (
@@ -282,7 +253,7 @@ export default function SignupPage() {
                 type="button"
                 onClick={() => void sendOtp()}
                 disabled={resendIn > 0 || loading}
-                className="font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+                className="font-medium text-brand hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
               >
                 {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
               </button>
@@ -339,7 +310,7 @@ export default function SignupPage() {
                 form.password && (
                   <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
                     {checks.map((check) => (
-                      <li key={check.label} className={cn("flex items-center gap-1.5", check.ok && "text-primary")}>
+                      <li key={check.label} className={cn("flex items-center gap-1.5", check.ok && "text-brand")}>
                         <Check className={cn("h-3.5 w-3.5", !check.ok && "opacity-30")} aria-hidden />
                         {check.label}
                         <span className="sr-only">{check.ok ? "(met)" : "(not met)"}</span>
@@ -376,6 +347,7 @@ export default function SignupPage() {
           </>
         )}
 
+        </div></StepTransition>
         <Button
           type="submit"
           size="lg"
