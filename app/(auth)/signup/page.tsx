@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Check, Loader2, Shuffle } from "lucide-react";
 import { cn, generateAnonymousHandle } from "@/lib/utils";
 import { useAuthStore } from "@/lib/store/authStore";
@@ -47,7 +46,6 @@ function formatSeconds(seconds: number) {
 }
 
 export default function SignupPage() {
-  const router = useRouter();
   const login = useAuthStore((state) => state.login);
   const [step, setCurrentStep] = useState<SignupStep>("email");
   const [direction, setDirection] = useState(1);
@@ -171,7 +169,7 @@ export default function SignupPage() {
       const { ok, data } = await post(parsed.data);
       if (!ok || !data.user) return applyServerError(data, "Failed to create account");
       login(data.user);
-      router.replace("/feed");
+      window.location.replace("/feed");
     });
   };
 

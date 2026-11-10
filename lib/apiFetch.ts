@@ -4,7 +4,7 @@ import { useAuthStore } from "@/lib/store/authStore";
 let redirecting = false;
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit) {
   const response = await fetch(input, { credentials: "include", ...init });
-  if (response.status === 401 && typeof window !== "undefined") {
+  if (response.status === 401 && !init?.signal?.aborted && typeof window !== "undefined") {
     useAuthStore.getState().clear();
     if (!redirecting) {
       redirecting = true;

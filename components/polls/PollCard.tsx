@@ -7,14 +7,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { apiJSON, jsonBody } from "@/lib/apiFetch";
 import type { PollDTO } from "@/lib/validation/polls";
-import { useAuthStore } from "@/lib/store/authStore";
 import { Button } from "@/components/ui/Button";
-export default function PollCard({ poll, onChange }: { poll: PollDTO; onChange: () => void }) {
+export default function PollCard({ poll, onChange, admin = false }: { poll: PollDTO; onChange: () => void; admin?: boolean }) {
   const reduce = usePrefersReducedMotion();
   const [choices, setChoices] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const admin = useAuthStore(state => state.user?.isAdmin);
   const date = new Date(poll.endsAt).toLocaleString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) + " IST";
   async function mutate(method: string, suffix: string, body?: unknown) {
     setBusy(true);

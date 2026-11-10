@@ -12,6 +12,7 @@ import { useUiStore } from "@/lib/store/uiStore";
 import type { PostDTO } from "@/lib/posts";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/textarea";
+import PostDestinationPicker from "./PostDestinationPicker";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -78,10 +79,8 @@ export default function CreatePostModal() {
           </DialogHeader>
 
           <div className="space-y-3 p-6">
-            <label htmlFor="post-community" className="block text-sm font-medium">Post to</label>
-            <select id="post-community" className="control-select" disabled={isSubmitting || communitiesLoading || !!communityError} value={communityId} onChange={event => setDestination({ pathname, id: event.target.value })}><option value="">{destinationPending ? "Loading communities…" : "Campus feed"}</option>{communityData?.communities.filter(community => community.isMember).map(community => <option key={community.id} value={community.id}>c/{community.name}</option>)}</select>
+            <PostDestinationPicker communities={communityData?.communities.filter(community => community.isMember) ?? []} value={communityId} onChange={id => setDestination({ pathname, id })} disabled={isSubmitting || communitiesLoading || !!communityError} loading={communitiesLoading} />
             {communityError && <p role="alert" className="text-sm text-destructive">Couldn’t load communities. <button type="button" className="underline" onClick={refreshCommunities}>Try again</button></p>}
-            {communityData?.communities.find(community => community.id === communityId)?.isPublic === false && <p className="metadata">Only members of this community can see this post.</p>}
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <label htmlFor="post-content" className="sr-only">Post content</label>
             <Textarea

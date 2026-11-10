@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { safeNext } from "@/lib/navigation";
 import { useAuthStore } from "@/lib/store/authStore";
 import { signinSchema, type SessionUser } from "@/lib/validation/auth";
 import { Button } from "@/components/ui/Button";
@@ -14,7 +12,6 @@ import Field from "@/components/auth/Field";
 import PasswordInput from "@/components/auth/PasswordInput";
 
 export default function SignInPage() {
-  const router = useRouter();
   const login = useAuthStore((state) => state.login);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -49,7 +46,8 @@ export default function SignInPage() {
         return;
       }
       login(data.user);
-      router.replace(safeNext(new URLSearchParams(window.location.search).get("next")));
+      // Start a fresh document after the cookie changes, clearing cached redirects.
+      window.location.replace("/feed");
     } catch {
       setError("Network error. Please try again.");
     } finally {

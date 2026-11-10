@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { useApi } from "@/lib/hooks/useApi";
 import { apiJSON, jsonBody } from "@/lib/apiFetch";
 import { pollSchema, type PollDTO } from "@/lib/validation/polls";
-import { useAuthStore } from "@/lib/store/authStore";
 import PollCard from "./PollCard";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -14,15 +13,14 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import Field from "@/components/auth/Field";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-export default function PollList() {
+export default function PollList({ admin = false }: { admin?: boolean }) {
   const { data, error, refresh } = useApi<{ polls: PollDTO[] }>("/api/v1/polls");
-  const admin = useAuthStore(state => state.user?.isAdmin);
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState(["", ""]);
   const [duration, setDuration] = useState("1d");
   const [busy, setBusy] = useState(false);
   useEffect(() => { const timer = setInterval(refresh, 30000); return () => clearInterval(timer); }, [refresh]);
-  return <div className="page-stack" data-tone="lavender"><PageHeader title="Polls" tone="lavender" doodle="Burst" description="Have your say. See where campus stands when voting closes." action={admin && <Button onClick={() => setOpen(true)}>New poll</Button>}/>{!data || error ? <ResourceState error={error} retry={refresh} /> : <>{[false, true].map(ended => <section key={String(ended)} className="space-y-4" aria-label={ended ? "Ended polls" : "Active polls"}><h2 className="section-title">{ended ? "Ended" : "Active"}</h2>{data.polls.filter(poll => poll.ended === ended).length ? data.polls.filter(poll => poll.ended === ended).map(poll => <PollCard key={poll.id} poll={poll} onChange={refresh} />) : <EmptyState tone="lavender" doodle="Burst" title={ended ? "No ended polls yet." : "No active polls."}/>}</section>)}</>}
+  return <div className="page-stack" data-tone="lavender"><PageHeader title="Polls" tone="lavender" doodle="Burst" description="Have your say. See where campus stands when voting closes." action={admin && <Button onClick={() => setOpen(true)}>Create poll</Button>}/>{!data || error ? <ResourceState error={error} retry={refresh} /> : <>{[false, true].map(ended => <section key={String(ended)} className="space-y-4" aria-label={ended ? "Ended polls" : "Active polls"}><h2 className="section-title">{ended ? "Ended" : "Active"}</h2>{data.polls.filter(poll => poll.ended === ended).length ? data.polls.filter(poll => poll.ended === ended).map(poll => <PollCard key={poll.id} poll={poll} admin={admin} onChange={refresh} />) : <EmptyState tone="lavender" doodle="Burst" title={ended ? "No ended polls yet." : "No active polls."}/>}</section>)}</>}
     <Dialog open={open} onOpenChange={value => !busy && setOpen(value)}><DialogContent className="max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>New poll</DialogTitle><DialogDescription>Results stay hidden from everyone until the poll ends.</DialogDescription></DialogHeader><form className="space-y-4 p-6" onSubmit={async event => {
       event.preventDefault(); const form = new FormData(event.currentTarget); setBusy(true);
       try { const custom = form.get("endsAt") as string; const input = pollSchema.parse({ question: form.get("question"), options, allowMultiple: form.get("multiple") === "on", duration, ...(duration === "custom" ? { endsAt: new Date(custom).toISOString() } : {}) }); await apiJSON("/api/v1/polls", jsonBody("POST", input)); setOpen(false); setOptions(["", ""]); refresh(); toast.success("Poll created"); }

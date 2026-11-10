@@ -22,3 +22,15 @@ test("successful requests keep the session and pass through the response", async
   expect(mocks.clear).not.toHaveBeenCalled();
   expect(mocks.assign).not.toHaveBeenCalled();
 });
+
+test("an aborted background poll response cannot redirect a later page", async () => {
+  const controller = new AbortController();
+  vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => {
+    controller.abort();
+    return new Response('{"error":"Unauthorized"}', { status: 401 });
+  }));
+  const { apiFetch } = await import("@/lib/apiFetch");
+  await apiFetch("/api/v1/polls", { signal: controller.signal });
+  expect(mocks.clear).not.toHaveBeenCalled();
+  expect(mocks.assign).not.toHaveBeenCalled();
+});

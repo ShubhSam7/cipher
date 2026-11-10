@@ -21,7 +21,7 @@ import type { PostDTO, PostsResponse } from "@/lib/posts";
 import { paginationSchema } from "@/lib/validation/posts";
 
 // The page keys this by search/tag so each result set starts with fresh pagination.
-export default function FeedView({ tag, community, author, query = "" }: { tag: string | null; community?: string; author?: string; query?: string }) {
+export default function FeedView({ tag, community, author, query = "", showComposer = true }: { tag: string | null; community?: string; author?: string; query?: string; showComposer?: boolean }) {
   const reduce = usePrefersReducedMotion();
   const [posts, setPosts] = useState<PostDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +113,7 @@ export default function FeedView({ tag, community, author, query = "" }: { tag: 
   return (
     <div className="feed-layout">
       <div className="feed-column">
-        <FeedIntro compact={!!community || !!author} />
+        {showComposer && <FeedIntro compact={!!community || !!author} />}
         {(community || author) && <h2 className="sr-only">Posts</h2>}
 
         {!community && !author && !query && !tag && <PinnedPoll />}
@@ -142,7 +142,7 @@ export default function FeedView({ tag, community, author, query = "" }: { tag: 
           </div>
         )}
 
-        <div className="stream-heading"><p className="section-label">{query ? "Search results" : "Latest conversations"}</p><span className="stream-order">Newest first</span></div>
+        <div className="stream-heading"><p className="section-label">{query ? "Search results" : author ? "Posts" : "Latest conversations"}</p><span className="stream-order">Newest first</span></div>
         {loading && visiblePosts.length === 0 && (
           <div className="space-y-1" aria-busy="true" aria-label="Loading posts">
             {[0, 1, 2].map(i => <PostSkeleton key={i} />)}
@@ -152,7 +152,7 @@ export default function FeedView({ tag, community, author, query = "" }: { tag: 
         {visiblePosts.map((post, index) => <m.div key={post.id} initial={reduce || index >= 10 ? false : "hidden"} animate="show" variants={fadeUp} transition={{delay:index < 10 ? index * .03 : 0}}><PostCard post={post} /></m.div>)}
 
         {!loading && visiblePosts.length === 0 && !error && (
-          <EmptyState title={query ? "No matching posts." : tag ? `No posts tagged #${tag} yet.` : author ? "Nothing posted yet." : "Nothing here yet."} body={query ? "Try a different phrase or search for a #hashtag." : "A conversation starts with a thought."} action={query ? <Button asChild variant="outline"><Link href="/feed">Back to feed</Link></Button> : <Button onClick={() => openCreatePost(true)}>Create a post</Button>}/>
+          <EmptyState title={query ? "No matching posts." : tag ? `No posts tagged #${tag} yet.` : author ? "Nothing posted yet." : "Nothing here yet."} body={query ? "Try a different phrase or search for a #hashtag." : author && !showComposer ? "Posts from this student will appear here." : "A conversation starts with a thought."} action={query ? <Button asChild variant="outline"><Link href="/feed">Back to feed</Link></Button> : showComposer ? <Button onClick={() => openCreatePost(true)}>Create a post</Button> : undefined}/>
         )}
 
         <div ref={sentinel} />

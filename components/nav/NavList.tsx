@@ -16,6 +16,7 @@ export default function NavList({ onNavigate }: { onNavigate?: () => void }) {
           <li key={path} className={path === "/settings" ? "nav-utility-start" : undefined}>
             <Link
               href={path}
+              prefetch={false}
               data-tone={tone}
               onClick={onNavigate}
               aria-current={isActive ? "page" : undefined}

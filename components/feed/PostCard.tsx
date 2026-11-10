@@ -95,9 +95,9 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
         <Link href={href} className="absolute inset-0" aria-label={`Open post by ${author}`} />
       )}
 
-      <header className="mb-4 flex items-center gap-3">
+      <header className="mb-4 flex min-w-0 items-start gap-3">
         <UserAvatar handle={post.author.user_handle} src={post.author.avatar} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="post-meta flex flex-wrap items-center">
             {post.community && <><Link href={`/c/${post.community.slug}`} data-tone="peach" className="relative z-10 chip chip--interactive">c/{post.community.name}</Link><span>•</span></>}
             <Link href={`/u/${post.author.user_handle}`} className="relative z-10 hover:underline">u/{post.author.user_handle}</Link><span>•</span>
@@ -125,7 +125,7 @@ export default function PostCard({ post, isDetail = false }: PostCardProps) {
         </button>
       )}
 
-      <div className="post-actions relative z-10 -ml-2 flex w-fit items-center">
+      <div className="post-actions relative z-10 -ml-2 flex w-fit max-w-full flex-wrap items-center">
         <button
           type="button"
           onClick={handleLike}
